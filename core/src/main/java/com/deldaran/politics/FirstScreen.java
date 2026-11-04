@@ -1,45 +1,119 @@
 package com.deldaran.politics;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.deldaran.politics.planet.GenerateurMonde;
+import com.deldaran.politics.planet.Monde;
+import com.deldaran.politics.planet.Plaque;
 
-/** First screen of the application. Displayed after the application is created. */
 public class FirstScreen implements Screen {
+    private static final Color OCEAN_PROFOND = new Color(0.05f, 0.15f, 0.40f, 1f);
+    private static final Color OCEAN_COTIER  = new Color(0.20f, 0.45f, 0.80f, 1f);
+    private static final Color TERRE_BASSE   = new Color(0.30f, 0.60f, 0.25f, 1f);
+    private static final Color TERRE_HAUTE   = new Color(0.55f, 0.45f, 0.30f, 1f);
+
+    GameCamera camera;
+    CameraController cameraController;
+    ExtendViewport viewport;
+    ShapeRenderer shapeRenderer;
+    Monde monde;
+    boolean modePlaques = true;
+
+    private final Color couleurTemp = new Color();
+
     @Override
     public void show() {
-        // Prepare your screen here.
+        camera = new GameCamera();
+        viewport = new ExtendViewport(40, 22.5f, camera);
+        cameraController = new CameraController(camera);
+        Gdx.input.setInputProcessor(cameraController);
+        shapeRenderer = new ShapeRenderer();
+
+        monde = new GenerateurMonde().genererMonde(512, 256, 42);
+
+        camera.position.set(monde.largeur / 2f, monde.hauteur / 2f, 0);
     }
 
     @Override
     public void render(float delta) {
-        // Draw your screen here. "delta" is the time since last render in seconds.
+        cameraController.update(delta);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+            modePlaques = !modePlaques;
+        }
+
+        ScreenUtils.clear(Color.BLACK);
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        int debutX = camera.getDebutX();
+        int finX   = camera.getFinX(monde.largeur);
+        int debutY = camera.getDebutY();
+        int finY   = camera.getFinY(monde.hauteur);
+
+        for (int y = debutY; y < finY; y++) {
+            for (int x = debutX; x < finX; x++) {
+                int i = monde.index(x, y);
+                if (modePlaques) {
+                    couleurPlaque(i);
+                } else {
+                    couleurRelief(i);
+                }
+                shapeRenderer.setColor(couleurTemp);
+                shapeRenderer.rect(x, y, 1, 1);
+            }
+        }
+        shapeRenderer.end();
+
+        Gdx.graphics.setTitle("Politics - FPS : " + Gdx.graphics.getFramesPerSecond()
+            + " - " + (modePlaques ? "plaques" : "relief") + " (TAB)");
+    }
+
+    private void couleurPlaque(int i) {
+        Plaque plaque = monde.plaques.get(monde.plaque[i]);
+        couleurTemp.set(plaque.couleur);
+        if (!monde.isContinentale[i]) {
+            couleurTemp.mul(0.7f, 0.7f, 0.7f, 1f);
+        }
+    }
+
+    private void couleurRelief(int i) {
+        float hauteurRelative = monde.altitude[i] - monde.niveauMer;
+        if (hauteurRelative < 0) {
+            float t = MathUtils.clamp(-hauteurRelative / 5f, 0f, 1f);
+            couleurTemp.set(OCEAN_COTIER).lerp(OCEAN_PROFOND, t);
+        } else {
+            float t = MathUtils.clamp(hauteurRelative / 4f, 0f, 1f);
+            couleurTemp.set(TERRE_BASSE).lerp(TERRE_HAUTE, t);
+        }
     }
 
     @Override
     public void resize(int width, int height) {
-        // If the window is minimized on a desktop (LWJGL3) platform, width and height are 0, which causes problems.
-        // In that case, we don't resize anything, and wait for the window to be a normal size before updating.
-        if(width <= 0 || height <= 0) return;
-
-        // Resize your screen here. The parameters represent the new window size.
+        if (width <= 0 || height <= 0) return;
+        viewport.update(width, height);
     }
 
     @Override
     public void pause() {
-        // Invoked when your application is paused.
     }
 
     @Override
     public void resume() {
-        // Invoked when your application is resumed after pause.
     }
 
     @Override
     public void hide() {
-        // This method is called when another screen replaces this one.
     }
 
     @Override
     public void dispose() {
-        // Destroy screen's assets here.
+        shapeRenderer.dispose();
     }
 }
