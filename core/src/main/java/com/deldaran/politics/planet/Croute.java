@@ -42,9 +42,9 @@ public final class Croute {
     public static final float TAILLE_FRACTURE = 0.15f;
     public static final float PROBA_FRACTURE = 0.005f;
     public static final float IMPULSION_RIFT = 0.3f;
-    public static final float AGE_RUPTURE = 90f;
-    public static final float PROBA_RUPTURE = 0.02f;
-    public static final int TAILLE_RUPTURE_MIN = 500;
+    public static final float AGE_RUPTURE = 70f;
+    public static final float PROBA_RUPTURE = 0.05f;
+    public static final int TAILLE_RUPTURE_MIN = 1500;
 
     public static final float SOULEVEMENT_DORSALE = 3f;
     public static final float SUBSIDENCE = 0.35f;
@@ -55,7 +55,9 @@ public final class Croute {
     public static final float HAUTEUR_VOLCAN_MAX = 8f;
     public static final float DECLIN_VOLCAN = 0.98f;
     public static final float PROBA_DEPLACEMENT_POINT_CHAUD = 0.003f;
-
-
+    public static final float RECUL_COTES = 0.004f;
+    public static final float AGE_RECUL = 20f;
+    public static final float ACCELERATION_MAX = 0.1f;
+    public static final int TAILLE_INERTIE = 5000;
 
 }

@@ -48,6 +48,8 @@ public class Tectonique {
 
     private final float[] nouveauVolcan;
     private final int[] pointsChauds;
+    public long casesRecyclees = 0;
+    private final Vector3 acceleration = new Vector3();
 
 
 
@@ -95,8 +97,8 @@ public class Tectonique {
         remplirTrous();
         elargirArcs();
         eleverContinents();
-        eleverContinents();
         activerPointsChauds();
+        recyclerCotes();
 
         if((int) monde.temps % Croute.PERIODE_FUSION == 0) {
             fusionnerTerres();
@@ -143,11 +145,34 @@ public class Tectonique {
         facteurCroissance = Math.max(0f, 1f - part / Croute.PART_CONTINENTS_CIBLE);
     }
 
+    private void recyclerCotes() {
+        Sphere s = monde.sphere;
+        trousARemplir.clear();
+        for (int i = 0; i < s.nombre; i++) {
+            if (!nouveauContinental[i] || rng.nextFloat() >= Croute.RECUL_COTES) continue;
+            for (int k = 0; k < Sphere.NOMBRE_VOISINS; k++) {
+                int voisin = s.voisin(i, k);
+                if (!nouveauContinental[voisin] && monde.fosse[voisin] > 0f) {
+                    trousARemplir.add(i);
+                    break;
+                }
+            }
+        }
+        casesRecyclees += trousARemplir.size;
+        for (int k = 0; k < trousARemplir.size; k++) {
+            int i = trousARemplir.get(k);
+            nouveauContinental[i] = false;
+            nouvelleEpaisseur[i] = Croute.EPAISSEUR_OCEANIQUE;
+            nouvelAge[i] = Croute.AGE_RECUL;
+        }
+    }
+
     private void appliquerForces() {
         Sphere s = monde.sphere;
         Arrays.fill(couples, 0f);
         Arrays.fill(taille, 0);
         Arrays.fill(tailleContinent, 0);
+        Arrays.fill(monde.fosse, 0f);
 
         for (int i = 0; i < s.nombre; i++) {
             int a = monde.plaque[i];
@@ -189,8 +214,10 @@ public class Tectonique {
         for (Plaque plaque : monde.plaques) {
             int p = plaque.id;
             if (taille[p] == 0) continue;
-            float gain = seuilRotation / taille[p];
-            plaque.rotation.add(couples[p * 3] * gain, couples[p * 3 + 1] * gain, couples[p * 3 + 2] * gain);
+            float gain = seuilRotation / Math.max(taille[p], Croute.TAILLE_INERTIE);
+            acceleration.set(couples[p * 3], couples[p * 3 + 1], couples[p * 3 + 2]).scl(gain).limit(Croute.ACCELERATION_MAX * seuilRotation);
+            plaque.rotation.add(acceleration);
+
             float partContinent = (float) tailleContinent[p] / taille[p];
             plaque.rotation.scl(1f - Croute.TRAINEE_OCEAN - Croute.TRAINEE_CONTINENT * partContinent);
             plaque.rotation.limit(vitesseMax);

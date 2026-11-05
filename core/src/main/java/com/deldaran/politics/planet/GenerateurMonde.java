@@ -12,9 +12,8 @@ public class GenerateurMonde {
     public float vitesseMin = 0.2f;
     public float vitesseMax = 1.0f;
     public float profondeurOcean = 3f;
+    public int nombrePlaquesMax = 35;
 
-    private static final int[] DX = { 1, -1, 0, 0 };
-    private static final int[] DY = { 0, 0, 1, -1 };
 
     private Monde monde;
     private RandomXS128 rng;
@@ -87,6 +86,9 @@ public class GenerateurMonde {
                 monde.plaque[voisin] = monde.plaque[depuis];
             }
         });
+        while (monde.plaques.size < nombrePlaquesMax) {
+            monde.plaques.add(new Plaque(monde.plaques.size));
+        }
     }
 
     private void donnerVitessesEtCouleurs() {
