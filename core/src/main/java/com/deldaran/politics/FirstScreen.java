@@ -13,6 +13,7 @@ import com.deldaran.politics.planet.GenerateurMonde;
 import com.deldaran.politics.planet.Monde;
 import com.deldaran.politics.planet.Plaque;
 import com.deldaran.politics.planet.Tectonique;
+import com.deldaran.politics.planet.Sphere;
 public class FirstScreen implements Screen {
     private static final Color OCEAN_PROFOND = new Color(0.05f, 0.15f, 0.40f, 1f);
     private static final Color OCEAN_COTIER  = new Color(0.20f, 0.45f, 0.80f, 1f);
@@ -54,6 +55,9 @@ public class FirstScreen implements Screen {
         fenetreDebug.ajouterInfo("Nombre de plaques", () -> String.valueOf(monde.plaques.size));
         fenetreDebug.ajouterInfo("Niveau de la mer", () -> String.format("%.2f km", monde.niveauMer));
         fenetreDebug.ajouterInfo("épaisseur maximale", () -> String.format("%.2f km", monde.epaisseurMax()));
+        fenetreDebug.ajouterInfo("Fractures", () -> String.valueOf(tectonique.nombreFractures));
+        fenetreDebug.ajouterInfo("Ruptures", () -> String.valueOf(tectonique.nombreRuptures));
+        fenetreDebug.ajouterInfo("Soudures", () -> String.valueOf(tectonique.nombreSoudures));
 
         Gdx.input.setInputProcessor(new InputMultiplexer(fenetreDebug.getStage(), cameraController));
     }
@@ -116,7 +120,7 @@ public class FirstScreen implements Screen {
     private void couleurRelief(int i) {
         float hauteurRelative = monde.altitude[i] - monde.niveauMer;
         if (hauteurRelative < 0) {
-            float t = MathUtils.clamp(-hauteurRelative / 5f, 0f, 1f);
+            float t = MathUtils.clamp(-hauteurRelative / 7f, 0f, 1f);
             couleurTemp.set(OCEAN_COTIER).lerp(OCEAN_PROFOND, t);
         } else {
             float t = MathUtils.clamp(hauteurRelative / 4f, 0f, 1f);

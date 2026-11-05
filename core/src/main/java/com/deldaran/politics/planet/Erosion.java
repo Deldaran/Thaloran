@@ -45,18 +45,16 @@ public class Erosion {
     }
 
     private int trouverVoisinLePlusBas(int i) {
-        int x = i % monde.largeur;
-        int y = i / monde.largeur;
         int voisinBas = -1;
         float altitudeMin = monde.altitude[i];
-
-        for (int d = 0; d < 4; d++) {
-            int voisin = monde.index(x + DX[d], y + DY[d]);
-            if (voisin != -1 && monde.altitude[voisin] < altitudeMin) {
+        for (int k = 0; k < Sphere.NOMBRE_VOISINS; k++) {
+            int voisin = monde.sphere.voisin(i, k);
+            if (monde.altitude[voisin] < altitudeMin) {
                 altitudeMin = monde.altitude[voisin];
                 voisinBas = voisin;
             }
         }
         return voisinBas;
     }
+
 }

@@ -10,6 +10,12 @@ public class Monde {
     public final boolean[] isContinentale;
     public final float[] age;
     public final float[] altitude;
+    public final Sphere sphere;
+    private final int[] caseCarte;
+
+    public final float[] fosse;
+    public final float[] volcan;
+
 
     public final Array<Plaque> plaques = new Array<>();
     public float volumeEau;
@@ -21,6 +27,12 @@ public class Monde {
         this.hauteur = hauteur;
         this.seed = seed;
         int n = largeur * hauteur;
+        sphere = new Sphere(n);
+        caseCarte = new int[n];
+        remplirCarte();
+
+        fosse = new float[n];
+        volcan = new float[n];
 
         plaque = new int[n];
         epaisseur = new float[n];
@@ -33,14 +45,31 @@ public class Monde {
         if (y < 0 || y >= hauteur) {
             return -1;
         }
-        x = ((x%largeur) + largeur) % largeur;
-        return y * largeur + x;
+        x = ((x % largeur) + largeur) % largeur;
+        return caseCarte[y * largeur + x];
+    }
+    
+    private void remplirCarte() {
+        for (int y = 0; y < hauteur; y++) {
+            double latitude = ((y + 0.5) / hauteur - 0.5) * Math.PI;
+            for (int x = 0; x < largeur; x++) {
+                double longitude = ((x + 0.5) / largeur - 0.5) * 2.0 * Math.PI;
+                float px = (float) (Math.cos(latitude) * Math.cos(longitude));
+                float py = (float) (Math.cos(latitude) * Math.sin(longitude));
+                float pz = (float) Math.sin(latitude);
+                caseCarte[y * largeur + x] = sphere.plusProche(px, py, pz);
+            }
+        }
     }
 
     public void calculerAltitude(int i) { 
-        float densité = isContinentale[i] ? Croute.DENSITE_CONTINENTALE : Croute.DENSITE_OCEANIQUE;
-        altitude[i] = epaisseur[i] * (1 - densité / Croute.DENSITE_MANTEAU);
-
+        if (isContinentale[i]) {
+            altitude[i] = epaisseur[i] * (1 - Croute.DENSITE_CONTINENTALE / Croute.DENSITE_MANTEAU) + volcan[i];
+        } else {
+            float enfoncement = Math.min(Croute.SUBSIDENCE * (float) Math.sqrt(age[i]), Croute.SUBSIDENCE_MAX);
+            altitude[i] = epaisseur[i] * (1 - Croute.DENSITE_OCEANIQUE / Croute.DENSITE_MANTEAU)
+                + Croute.SOULEVEMENT_DORSALE - enfoncement - fosse[i] + volcan[i];
+        }
     }
 
     public void calculerToutesAltitudes() {

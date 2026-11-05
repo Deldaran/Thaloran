@@ -5,7 +5,7 @@ import com.badlogic.gdx.utils.IntArray;
 
 public class GenerateurMonde {
     public int nombrePlaques = 25;
-    public int distanceMinGraines = 40;
+    public float distanceMinGraines = 0.45f;
     public int nombreCratons = 5;
     public int tailleCratonMin = 200;
     public int tailleCratonMax = 600;
@@ -43,13 +43,11 @@ public class GenerateurMonde {
 
     private IntArray placerGraines() {
         IntArray graines = new IntArray();
-        int distMinCarree = distanceMinGraines * distanceMinGraines;
+        float distMinCarree = distanceMinGraines * distanceMinGraines;
         int essais = 0;
         while (graines.size < nombrePlaques && essais < 10000) {
             essais++;
-            int x = rng.nextInt(monde.largeur);
-            int y = rng.nextInt(monde.hauteur);
-            int index = monde.index(x, y);
+            int index = rng.nextInt(monde.plaque.length);
 
             boolean tropProche = false;
             for (int k = 0; k < graines.size; k++) {
@@ -68,13 +66,12 @@ public class GenerateurMonde {
         return graines;
     }
 
-    private int distanceCarree(int i1, int i2) {
-        int x1 = i1 % monde.largeur, y1 = i1 / monde.largeur;
-        int x2 = i2 % monde.largeur, y2 = i2 / monde.largeur;
-        int dx = Math.abs(x1 - x2);
-        dx = Math.min(dx, monde.largeur - dx);
-        int dy = y1 - y2;
-        return dx * dx + dy * dy;
+    private float distanceCarree(int i1, int i2) {
+        Sphere s = monde.sphere;
+        float dx = s.x[i1] - s.x[i2];
+        float dy = s.y[i1] - s.y[i2];
+        float dz = s.z[i1] - s.z[i2];
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private void faireGrandirPlaques(IntArray graines) {
@@ -93,10 +90,13 @@ public class GenerateurMonde {
     }
 
     private void donnerVitessesEtCouleurs() {
+        float espacement = (float) Math.sqrt(4.0 * Math.PI / monde.plaque.length);
         for (Plaque plaque : monde.plaques) {
-            float angle = rng.nextFloat() * 360f;
             float v = vitesseMin + rng.nextFloat() * (vitesseMax - vitesseMin);
-            plaque.vitesse.set(v, 0).rotateDeg(angle);
+            float hauteur = rng.nextFloat() * 2f - 1f;
+            float angle = rng.nextFloat() * 6.2831855f;
+            float rayon = (float) Math.sqrt(1f - hauteur * hauteur);
+            plaque.rotation.set(rayon * (float) Math.cos(angle), rayon * (float) Math.sin(angle), hauteur).scl(v * espacement);
             plaque.couleur.fromHsv(rng.nextFloat() * 360f, 0.6f, 0.9f);
             plaque.couleur.a = 1f;
         }
@@ -116,7 +116,7 @@ public class GenerateurMonde {
         };
 
         for (int c = 0; c < nombreCratons; c++) {
-            int depart = monde.index(rng.nextInt(monde.largeur), rng.nextInt(monde.hauteur));
+            int depart = rng.nextInt(monde.plaque.length);
             rendreContinentale(depart);
 
             int taille = tailleCratonMin + rng.nextInt(tailleCratonMax - tailleCratonMin + 1);
@@ -156,12 +156,9 @@ public class GenerateurMonde {
         int prises = 0;
         while (frontiere.size > 0 && prises < maxCases) {
             int depuis = frontiere.removeIndex(rng.nextInt(frontiere.size));
-            int x = depuis % monde.largeur;
-            int y = depuis / monde.largeur;
 
-            for (int d = 0; d < 4 && prises < maxCases; d++) {
-                int voisin = monde.index(x + DX[d], y + DY[d]);
-                if (voisin == -1) continue;
+            for (int k = 0; k < Sphere.NOMBRE_VOISINS && prises < maxCases; k++) {
+                int voisin = monde.sphere.voisin(depuis, k);
                 if (regle.peutPrendre(depuis, voisin)) {
                     regle.prendre(depuis, voisin);
                     frontiere.add(voisin);
@@ -171,4 +168,5 @@ public class GenerateurMonde {
         }
         return prises;
     }
+
 }

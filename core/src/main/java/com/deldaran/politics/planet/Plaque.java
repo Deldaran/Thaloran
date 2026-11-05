@@ -2,13 +2,14 @@ package com.deldaran.politics.planet;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 
 public class Plaque {
     public final int id;
-    public Vector2 vitesse = new Vector2();
+    public final Vector3 rotation = new Vector3();
+    public final Vector3 rotationAccumulee = new Vector3();
+
     public Color couleur = new Color();
-    
-    public float decalageX , decalageY;
 
     public Plaque(int id) {
         this.id = id;
