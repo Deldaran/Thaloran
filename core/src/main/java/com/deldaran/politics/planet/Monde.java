@@ -52,4 +52,39 @@ public class Monde {
     public boolean estSousLEau(int i) {
         return altitude[i] < niveauMer;
     }
+
+    public float epaisseurMax() {
+        float max = Float.NEGATIVE_INFINITY;
+        for (int i = 0; i < epaisseur.length; i++) {
+            if (epaisseur[i] > max) {
+                max = epaisseur[i];
+            }
+        }
+        return max;
+    }
+    public void calculerNiveauMer() {
+        float bas = Float.MAX_VALUE;
+        float haut = -Float.MAX_VALUE;
+        for (float a : altitude) {
+            bas = Math.min(bas, a);
+            haut = Math.max(haut, a);
+        }
+        haut += volumeEau / altitude.length;
+
+        for (int essai = 0; essai < 25; essai++) {
+            float milieu = (bas + haut) / 2f;
+            float volume = 0f;
+            for (float a : altitude) {
+                if (a < milieu) volume += milieu - a;
+            }
+            if (volume < volumeEau) {
+                bas = milieu;
+            } else {
+                haut = milieu;
+            }
+        }
+        niveauMer = (bas + haut) / 2f;
+    }
+
+
 }

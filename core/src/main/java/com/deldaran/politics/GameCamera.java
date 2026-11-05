@@ -6,7 +6,7 @@ import com.badlogic.gdx.math.MathUtils;
 public class GameCamera extends OrthographicCamera {
     public float vitesse = 20f;
     public float zoomMin = 0.1f;
-    public float zoomMax = 8f; 
+    public float zoomMax = 500f; 
 
     public void deplacer(float dx, float dy) {
         position.x += dx;

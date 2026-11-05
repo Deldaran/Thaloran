@@ -11,7 +11,7 @@ public class GenerateurMonde {
     public int tailleCratonMax = 600;
     public float vitesseMin = 0.2f;
     public float vitesseMax = 1.0f;
-    public float profondeurOcean = 4f;
+    public float profondeurOcean = 3f;
 
     private static final int[] DX = { 1, -1, 0, 0 };
     private static final int[] DY = { 0, 0, 1, -1 };

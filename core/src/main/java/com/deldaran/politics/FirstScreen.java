@@ -2,6 +2,7 @@ package com.deldaran.politics;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -11,7 +12,7 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.deldaran.politics.planet.GenerateurMonde;
 import com.deldaran.politics.planet.Monde;
 import com.deldaran.politics.planet.Plaque;
-
+import com.deldaran.politics.planet.Tectonique;
 public class FirstScreen implements Screen {
     private static final Color OCEAN_PROFOND = new Color(0.05f, 0.15f, 0.40f, 1f);
     private static final Color OCEAN_COTIER  = new Color(0.20f, 0.45f, 0.80f, 1f);
@@ -23,7 +24,12 @@ public class FirstScreen implements Screen {
     ExtendViewport viewport;
     ShapeRenderer shapeRenderer;
     Monde monde;
+    Tectonique tectonique;
+    FenetreDebug fenetreDebug;
     boolean modePlaques = true;
+
+    boolean enPause = false;
+    float tempsAccumule = 0f;
 
     private final Color couleurTemp = new Color();
 
@@ -32,12 +38,24 @@ public class FirstScreen implements Screen {
         camera = new GameCamera();
         viewport = new ExtendViewport(40, 22.5f, camera);
         cameraController = new CameraController(camera);
-        Gdx.input.setInputProcessor(cameraController);
         shapeRenderer = new ShapeRenderer();
 
         monde = new GenerateurMonde().genererMonde(512, 256, 42);
 
+        tectonique = new Tectonique(monde);
+
         camera.position.set(monde.largeur / 2f, monde.hauteur / 2f, 0);
+
+        fenetreDebug = new FenetreDebug();
+        fenetreDebug.ajouterInfo("FPS", () -> String.valueOf(Gdx.graphics.getFramesPerSecond()));
+        fenetreDebug.ajouterInfo("Mode (TAB)", () -> modePlaques ? "plaques" : "relief");
+        fenetreDebug.ajouterInfo("Simulation (ESPACE)", () -> enPause ? "en pause" : "en cours");
+        fenetreDebug.ajouterInfo("Temps", () -> (int) monde.temps + " Millions d'années");
+        fenetreDebug.ajouterInfo("Nombre de plaques", () -> String.valueOf(monde.plaques.size));
+        fenetreDebug.ajouterInfo("Niveau de la mer", () -> String.format("%.2f km", monde.niveauMer));
+        fenetreDebug.ajouterInfo("épaisseur maximale", () -> String.format("%.2f km", monde.epaisseurMax()));
+
+        Gdx.input.setInputProcessor(new InputMultiplexer(fenetreDebug.getStage(), cameraController));
     }
 
     @Override
@@ -45,6 +63,17 @@ public class FirstScreen implements Screen {
         cameraController.update(delta);
         if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
             modePlaques = !modePlaques;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            enPause = !enPause;
+        }  
+
+        if (!enPause) {
+            tempsAccumule += delta;
+            while (tempsAccumule >= 0.1f) {
+                tectonique.pas();
+                tempsAccumule -= 0.1f;
+            }
         }
 
         ScreenUtils.clear(Color.BLACK);
@@ -69,10 +98,11 @@ public class FirstScreen implements Screen {
                 shapeRenderer.rect(x, y, 1, 1);
             }
         }
+
+        
         shapeRenderer.end();
 
-        Gdx.graphics.setTitle("Politics - FPS : " + Gdx.graphics.getFramesPerSecond()
-            + " - " + (modePlaques ? "plaques" : "relief") + " (TAB)");
+        fenetreDebug.dessiner(delta);
     }
 
     private void couleurPlaque(int i) {
@@ -98,6 +128,7 @@ public class FirstScreen implements Screen {
     public void resize(int width, int height) {
         if (width <= 0 || height <= 0) return;
         viewport.update(width, height);
+        fenetreDebug.redimensionner(width, height);
     }
 
     @Override
@@ -115,5 +146,6 @@ public class FirstScreen implements Screen {
     @Override
     public void dispose() {
         shapeRenderer.dispose();
+        fenetreDebug.dispose();
     }
 }
