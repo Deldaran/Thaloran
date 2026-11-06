@@ -8,7 +8,8 @@ public class GameCamera {
 
     public double vitessePixels = 500.0;
     public double rayonMin = 150.0;
-    public double rayonMax = 10000000.0;
+    public double rayonMax = 3200000.0;
+
 
     public double longitude = 0.0;
     public double latitude = 0.0;

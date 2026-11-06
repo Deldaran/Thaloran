@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RenduTuiles {
-    public static final int NIVEAU_MAX = 12;
+    public static final int NIVEAU_MAX = 11;
 
     private static final int FLOTTANTS_PAR_POINT = 5;
     private static final float TAILLE_DIVISION = 384f;

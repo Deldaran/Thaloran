@@ -1,7 +1,9 @@
 package com.deldaran.politics.planet;
 
 public class Terrain {
-    public static final double RAYON_KM = 6371.0;
+    public static final double RAYON_KM = 2000.0;
+    public static final double ECHELLE = RAYON_KM / 6371.0;
+
 
     private static final int COTE = 256;
     private static final int LARGEUR = COTE + 1;

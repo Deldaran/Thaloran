@@ -11,7 +11,7 @@ import java.nio.IntBuffer;
 
 public class AtelierTuile {
     private static final int LARGEUR = Tuile.COTE + 2;
-    private static final float FORCE_OMBRE = 5f;
+    private static final float FORCE_OMBRE = 5f * (float) Terrain.ECHELLE;
     private static final float OMBRE_MIN = 0.55f;
     private static final float OMBRE_MAX = 1.3f;
     private static final float RACINE_DEUX = 0.70710678f;

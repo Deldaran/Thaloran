@@ -9,19 +9,21 @@ public class Rivieres {
     private static final int MORCEAUX = 8;
     private static final double MEANDRE = 0.25;
 
-    private static final float VALLEE_BASE_KM = 4f;
-    private static final float VALLEE_PAR_DEBIT = 1.2f;
-    private static final float VALLEE_MAX_KM = 30f;
-    private static final float ELARGISSEMENT_KM = 25f;
-    private static final float ELARGISSEMENT_MAX_KM = 25f;
-    private static final float LARGEUR_PAR_DEBIT = 0.1f;
+    private static final float VALLEE_BASE_KM = 4f * (float) Terrain.ECHELLE;
+    private static final float VALLEE_PAR_DEBIT = 1.2f * (float) Terrain.ECHELLE;
+    private static final float VALLEE_MAX_KM = 30f * (float) Terrain.ECHELLE;
+    private static final float ELARGISSEMENT_KM = 25f * (float) Terrain.ECHELLE;
+    private static final float ELARGISSEMENT_MAX_KM = 25f * (float) Terrain.ECHELLE;
+    private static final float LARGEUR_PAR_DEBIT = 0.1f * (float) Terrain.ECHELLE;
+
 
     private static final int COTE_SEAUX = 256;
-    private static final double TAILLE_SEAU_KM = 39.0;
+    private static final double TAILLE_SEAU_KM = 39.0 * Terrain.ECHELLE;
 
     private static final int OCTAVES_SINUOSITE = 5;
-    private static final double LONGUEUR_SINUOSITE_KM = 30.0;
-    private static final double AMPLITUDE_SINUOSITE_KM = 1.5;
+    private static final double LONGUEUR_SINUOSITE_KM = 30.0 * Terrain.ECHELLE;
+    private static final double AMPLITUDE_SINUOSITE_KM = 1.5 * Terrain.ECHELLE;
+
 
     private final int graine;
     private int nombre = 0;
