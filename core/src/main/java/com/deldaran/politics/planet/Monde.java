@@ -22,6 +22,14 @@ public class Monde {
     public float niveauMer;
     public float temps;
     public final long seed;
+
+    public final float[] temperature;
+    public final float[] pluie;
+    public final byte[] biome;
+    public final float[] debit;
+    public final boolean[] lac;
+
+
     public Monde(int largeur, int hauteur, long seed) {
         this.largeur = largeur;
         this.hauteur = hauteur;
@@ -33,6 +41,13 @@ public class Monde {
 
         fosse = new float[n];
         volcan = new float[n];
+        
+        temperature = new float[n];
+        pluie = new float[n];
+        biome = new byte[n];
+        
+        debit = new float[n];
+        lac = new boolean[n];
 
         plaque = new int[n];
         epaisseur = new float[n];
@@ -76,6 +91,10 @@ public class Monde {
         for (int i = 0; i < plaque.length; i++) {
             calculerAltitude(i);
         }
+    }
+
+    public boolean estGele(int i) {
+        return biome[i] == Biome.GLACE || biome[i] == Biome.NEIGE;
     }
 
     public boolean estSousLEau(int i) {

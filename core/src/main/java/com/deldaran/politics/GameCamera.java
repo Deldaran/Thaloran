@@ -1,40 +1,46 @@
 package com.deldaran.politics;
 
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix3;
 
-public class GameCamera extends OrthographicCamera {
-    public float vitesse = 20f;
-    public float zoomMin = 0.1f;
-    public float zoomMax = 500f; 
+public class GameCamera {
+    private static final double LATITUDE_MAX = Math.toRadians(89.9);
+    private static final double COSINUS_MIN = 0.1;
 
-    public void deplacer(float dx, float dy) {
-        position.x += dx;
-        position.y += dy;
+    public double vitessePixels = 500.0;
+    public double rayonMin = 150.0;
+    public double rayonMax = 10000000.0;
+
+    public double longitude = 0.0;
+    public double latitude = 0.0;
+    public double rayonPixels = 330.0;
+
+    private final Matrix3 repere = new Matrix3();
+
+    public void deplacerPixels(double pixelsX, double pixelsY) {
+        double cosinus = Math.max(COSINUS_MIN, Math.cos(latitude));
+        longitude += pixelsX / (rayonPixels * cosinus);
+        latitude += pixelsY / rayonPixels;
+        latitude = Math.max(-LATITUDE_MAX, Math.min(LATITUDE_MAX, latitude));
+        longitude = Math.IEEEremainder(longitude, 2.0 * Math.PI);
     }
 
-    public void zoomer(float quantite) {
-        zoom = MathUtils.clamp(zoom + quantite, zoomMin, zoomMax);
+    public void zoomer(double facteur) {
+        rayonPixels = Math.max(rayonMin, Math.min(rayonMax, rayonPixels * facteur));
     }
 
-    public void glisser(float pixelsX, float pixelsY, float largeurEcranPixels) {
-        float tuilesParPixel = viewportWidth * zoom / largeurEcranPixels;
-        deplacer(-pixelsX * tuilesParPixel, pixelsY * tuilesParPixel);
-    }
-
-    public int getDebutX() {
-        return Math.max(0, MathUtils.floor(position.x - viewportWidth * zoom / 2f));
-    }
-
-    public int getFinX(int largeurCarte) {
-        return Math.min(largeurCarte, MathUtils.ceil(position.x + viewportWidth * zoom / 2f));
-    }
-
-    public int getDebutY() {
-        return Math.max(0, MathUtils.floor(position.y - viewportHeight * zoom / 2f));
-    }
-
-    public int getFinY(int hauteurCarte) {
-        return Math.min(hauteurCarte, MathUtils.ceil(position.y + viewportHeight * zoom / 2f));
+    public Matrix3 repere() {
+        double cosLon = Math.cos(longitude), sinLon = Math.sin(longitude);
+        double cosLat = Math.cos(latitude), sinLat = Math.sin(latitude);
+        float[] m = repere.val;
+        m[0] = (float) -sinLon;
+        m[1] = (float) cosLon;
+        m[2] = 0f;
+        m[3] = (float) (-sinLat * cosLon);
+        m[4] = (float) (-sinLat * sinLon);
+        m[5] = (float) cosLat;
+        m[6] = (float) (cosLat * cosLon);
+        m[7] = (float) (cosLat * sinLon);
+        m[8] = (float) sinLat;
+        return repere;
     }
 }
