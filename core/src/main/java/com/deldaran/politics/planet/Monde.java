@@ -28,6 +28,8 @@ public class Monde {
     public final byte[] biome;
     public final float[] debit;
     public final boolean[] lac;
+    public final int[] receveur;
+    public final float[] surfaceEau;
 
 
     public Monde(int largeur, int hauteur, long seed) {
@@ -48,6 +50,9 @@ public class Monde {
         
         debit = new float[n];
         lac = new boolean[n];
+
+        receveur = new int[n];
+        surfaceEau = new float[n];
 
         plaque = new int[n];
         epaisseur = new float[n];
@@ -94,7 +99,7 @@ public class Monde {
     }
 
     public boolean estGele(int i) {
-        return biome[i] == Biome.GLACE || biome[i] == Biome.NEIGE;
+        return Biome.estGele(biome[i]);
     }
 
     public boolean estSousLEau(int i) {

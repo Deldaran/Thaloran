@@ -22,6 +22,10 @@ public class Terrain {
     private static final float VARIATION_PLUIE = 0.3f;
     private static final float REFROIDISSEMENT = 6.5f;
 
+    private static final float SEUIL_LAC = 0.33f;
+    private static final float CONTOUR_LAC = 0.15f;
+    private static final double FREQUENCE_LAC = 150.0;
+
     public final float hauteurPlaines;
 
     private final int graine;
@@ -29,10 +33,14 @@ public class Terrain {
     private final float[][] temperature = new float[Cube.FACES][LARGEUR * LARGEUR];
     private final float[][] pluie = new float[Cube.FACES][LARGEUR * LARGEUR];
 
+    private final float[][] lac = new float[Cube.FACES][LARGEUR * LARGEUR];
+    private final float[][] niveauLac = new float[Cube.FACES][LARGEUR * LARGEUR];
+    private final Rivieres rivieres;
+
     private final double rayon2;
     private final int[] marque;
     private int tour = 0;
-    private double poids, sommeH, sommeT, sommeP;
+    private double poids, sommeH, sommeT, sommeP, sommeL, sommeN;
 
     public Terrain(Monde monde, float hauteurPlaines) {
         this.hauteurPlaines = hauteurPlaines;
@@ -43,6 +51,9 @@ public class Terrain {
         rayon2 = PORTEE * PORTEE * espacement * espacement;
         marque = new int[s.nombre];
         double[] d = new double[3];
+        rivieres = new Rivieres(monde);
+
+
 
         for (int face = 0; face < Cube.FACES; face++) {
             for (int y = 0; y < LARGEUR; y++) {
@@ -59,7 +70,7 @@ public class Terrain {
     private void remplir(Monde monde, double[] d, int face, int indice) {
         Sphere s = monde.sphere;
         int proche = s.plusProche((float) d[0], (float) d[1], (float) d[2]);
-        poids = sommeH = sommeT = sommeP = 0.0;
+        poids = sommeH = sommeT = sommeP = sommeL = sommeN = 0.0;
         tour++;
 
         ajouter(monde, proche, d);
@@ -73,6 +84,8 @@ public class Terrain {
         altitude[face][indice] = (float) (sommeH / poids);
         temperature[face][indice] = (float) (sommeT / poids);
         pluie[face][indice] = (float) (sommeP / poids);
+        lac[face][indice] = (float) (sommeL / poids);
+        niveauLac[face][indice] = (float) (sommeN / poids);
     }
 
     private void ajouter(Monde monde, int i, double[] d) {
@@ -87,6 +100,11 @@ public class Terrain {
         sommeH += w * compresser(monde.altitude[i] - monde.niveauMer);
         sommeT += w * monde.temperature[i];
         sommeP += w * monde.pluie[i];
+        if (monde.lac[i]) {
+            sommeL += w;
+            sommeN += w * (monde.surfaceEau[i] - monde.niveauMer);
+        }
+
     }
 
     private static float compresser(float h) {
@@ -97,7 +115,7 @@ public class Terrain {
         return h < 0f ? h / COMPRESSION_MER : h;
     }
 
-    public void echantillonner(double x, double y, double z, int octaves, Point sortie) {
+    public void echantillonner(double x, double y, double z, int niveau, Point sortie) {
         int face = Cube.face(x, y, z);
         double gx = (Cube.coordonneeA(face, x, y, z) + 1.0) * 0.5 * COTE;
         double gy = (Cube.coordonneeB(face, x, y, z) + 1.0) * 0.5 * COTE;
@@ -109,8 +127,21 @@ public class Terrain {
         float base = decompresser(interpoler(altitude[face], indice, fx, fy));
         sortie.temperature = interpoler(temperature[face], indice, fx, fy);
         sortie.pluie = interpoler(pluie[face], indice, fx, fy);
-        sortie.altitude = base + detail(x, y, z, octaves, base);
+        sortie.altitude = base + detail(x, y, z, niveau + 1, base);
         sortie.base = base;
+        rivieres.influencer(x, y, z, niveau, sortie);
+
+        float presence = interpoler(lac[face], indice, fx, fy);
+        sortie.lac = false;
+        if (presence > SEUIL_LAC - CONTOUR_LAC) {
+            float contour = Bruit.perlin(x * FREQUENCE_LAC, y * FREQUENCE_LAC, z * FREQUENCE_LAC, graine + 300)
+                + 0.5f * Bruit.perlin(x * FREQUENCE_LAC * 2.0, y * FREQUENCE_LAC * 2.0, z * FREQUENCE_LAC * 2.0, graine + 301);
+            if (presence + CONTOUR_LAC * contour > SEUIL_LAC) {
+                sortie.lac = true;
+                sortie.altitude = interpoler(niveauLac[face], indice, fx, fy) / presence;
+            }
+        }
+
     }
 
     private float interpoler(float[] grille, int i, float fx, float fy) {
@@ -155,5 +186,8 @@ public class Terrain {
         public float base;
         public float temperature;
         public float pluie;
+        public boolean riviere;
+        public boolean lac;
+
     }
 }

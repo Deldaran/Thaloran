@@ -35,12 +35,10 @@ public class FirstScreen implements Screen {
 
     boolean enPause = false;
     float tempsAccumule = 0f;
-    private static final Color LAC = new Color(0.29f, 0.56f, 0.85f, 1f);
-    private static final Color RIVIERE = new Color(0.18f, 0.44f, 0.82f, 1f);
     private static final float SEUIL_RIVIERE = 10f;
 
     private static final float PERIODE_CARTE = 0.1f;
-    private static final double RAYON_TUILES = 900.0;
+    private static final double RAYON_TUILES = 300.0;
 
 
     private static final String[] NOMS_MODES = { "plaques", "relief", "temperature", "pluie", "biomes" };
@@ -157,9 +155,9 @@ public class FirstScreen implements Screen {
     private void ajouterEau(int i) {
         if (monde.estSousLEau(i) || monde.estGele(i)) return;
         if (monde.lac[i]) {
-            couleurTemp.set(LAC);
+            couleurTemp.set(Palette.LAC);
         } else if (monde.debit[i] > SEUIL_RIVIERE) {
-            couleurTemp.set(RIVIERE);
+            couleurTemp.set(Palette.RIVIERE);
         }
     }
 

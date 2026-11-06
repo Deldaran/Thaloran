@@ -15,9 +15,10 @@ public final class Biome {
     public static final byte NEIGE = 11;
     public static final float HAUTEUR_MONTAGNE = 1.2f;
     public static final float TEMPERATURE_NEIGE = -5f;
-    
+
     private Biome() {
     }
+
     public static byte choisir(float t, float p, boolean sousLEau, float relief) {
         if (sousLEau) return t < -9f ? BANQUISE : OCEAN;
         if (relief > HAUTEUR_MONTAGNE) return t < TEMPERATURE_NEIGE ? NEIGE : MONTAGNE;
@@ -33,4 +34,9 @@ public final class Biome {
         if (p < 600f) return SAVANE;
         return JUNGLE;
     }
+    
+    public static boolean estGele(byte biome) {
+        return biome == GLACE || biome == NEIGE;
+    }
+
 }

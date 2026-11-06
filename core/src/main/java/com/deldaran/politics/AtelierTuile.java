@@ -26,13 +26,16 @@ public class AtelierTuile {
     private final float[] altitude = new float[LARGEUR * LARGEUR];
     private final float[] temperature = new float[LARGEUR * LARGEUR];
     private final byte[] biome = new byte[LARGEUR * LARGEUR];
+    private final byte[] eau = new byte[LARGEUR * LARGEUR];
+
+    private static final byte RIVIERE = 1;
+    private static final byte LAC = 2;
 
     public AtelierTuile(Terrain terrain) {
         this.terrain = terrain;
     }
 
     public Pixmap generer(Tuile tuile) {
-        int octaves = tuile.niveau + 1;
         for (int y = 0; y < LARGEUR; y++) {
             double b = tuile.coordonnee(tuile.y, (y - 0.5) / Tuile.COTE);
             for (int x = 0; x < LARGEUR; x++) {
@@ -42,10 +45,12 @@ public class AtelierTuile {
                 px[i] = d[0];
                 py[i] = d[1];
                 pz[i] = d[2];
-                terrain.echantillonner(d[0], d[1], d[2], octaves, point);
+                terrain.echantillonner(d[0], d[1], d[2], tuile.niveau, point);
                 biome[i] = terrain.biome(d[0], d[1], d[2], point);
                 altitude[i] = point.altitude;
                 temperature[i] = point.temperature;
+                eau[i] = Biome.estGele(biome[i]) ? 0 : (byte) (point.lac ? LAC : (point.riviere ? RIVIERE : 0));
+
             }
         }
 
@@ -55,7 +60,7 @@ public class AtelierTuile {
             for (int x = 0; x < Tuile.COTE; x++) {
                 int i = (y + 1) * LARGEUR + x + 1;
                 choisirCouleur(i, tuile.biomes);
-                if (altitude[i] >= 0f) {
+                if (altitude[i] >= 0f && eau[i] == 0) {
                     float ombre = calculerOmbre(i);
                     couleur.mul(ombre, ombre, ombre, 1f).clamp();
                 }
@@ -66,7 +71,11 @@ public class AtelierTuile {
     }
 
     private void choisirCouleur(int i, boolean biomes) {
-        if (!biomes) {
+        if (altitude[i] >= 0f && eau[i] == LAC) {
+            couleur.set(Palette.LAC);
+        } else if (altitude[i] >= 0f && eau[i] == RIVIERE) {
+            couleur.set(Palette.RIVIERE);
+        } else if (!biomes) {
             Palette.relief(altitude[i], temperature[i], couleur);
         } else if (biome[i] == Biome.OCEAN) {
             Palette.ocean(-altitude[i], couleur);

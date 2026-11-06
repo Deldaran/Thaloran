@@ -5,6 +5,8 @@ import com.badlogic.gdx.math.MathUtils;
 
 public final class Palette {
     public static final float TEMPERATURE_NEIGE = -5f;
+    public static final Color LAC = new Color(0.29f, 0.56f, 0.85f, 1f);
+    public static final Color RIVIERE = new Color(0.18f, 0.44f, 0.82f, 1f);
 
     private static final Color OCEAN_PROFOND = new Color(0.05f, 0.15f, 0.40f, 1f);
     private static final Color OCEAN_COTIER = new Color(0.20f, 0.45f, 0.80f, 1f);

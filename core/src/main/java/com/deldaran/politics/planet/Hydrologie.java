@@ -42,13 +42,14 @@ public class Hydrologie {
     public Hydrologie(Monde monde) {
         this.monde = monde;
         int n = monde.plaque.length;
-        surface = new float[n];
-        receveur = new int[n];
         ordre = new int[n];
         visite = new boolean[n];
         charge = new float[n];
         tampon = new float[n];
         bruit = new float[n];
+        surface = monde.surfaceEau;
+        receveur = monde.receveur;
+
         file = new PriorityQueue<>(n / 4, (a, b) -> Float.compare(surface[a], surface[b]));
         ajouterRugosite();
     }
