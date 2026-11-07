@@ -28,6 +28,8 @@ public class Etats {
         public float seuilRevolution = 20f;
         public float chanceSecession = 0.02f;
         public float chanceRevolution = 0.1f;
+        public float usurpation = 0.1f;
+
     }
 
     public final Reglages reglages;
@@ -38,6 +40,10 @@ public class Etats {
     public int chutes = 0;
     public int guerres = 0;
     public int revolutions = 0;
+    public int crises = 0;
+    public int regences = 0;
+    public int usurpations = 0;
+    public int heritages = 0;
     public long mortsAuCombat = 0;
     public long mortsDesSacs = 0;
 
@@ -59,6 +65,8 @@ public class Etats {
     public int[] sujets = new int[TAILLE_DEPART];
     public int[] tenuesMax = new int[TAILLE_DEPART];
     public int[] ennemi = new int[TAILLE_DEPART];
+    public int[] maison = new int[TAILLE_DEPART];
+    public int[] regne = new int[TAILLE_DEPART];
 
     private int[] slotChef = new int[TAILLE_DEPART];
     private float[] revenu = new float[TAILLE_DEPART];
@@ -114,6 +122,8 @@ public class Etats {
         sujets = java.util.Arrays.copyOf(sujets, n);
         tenuesMax = java.util.Arrays.copyOf(tenuesMax, n);
         ennemi = java.util.Arrays.copyOf(ennemi, n);
+        maison = java.util.Arrays.copyOf(maison, n);
+        regne = java.util.Arrays.copyOf(regne, n);
         slotChef = java.util.Arrays.copyOf(slotChef, n);
         revenu = java.util.Arrays.copyOf(revenu, n);
         armeeDeDepart = java.util.Arrays.copyOf(armeeDeDepart, n);
@@ -199,7 +209,7 @@ public class Etats {
         int r = p.villes.region[ville];
         int q = p.villes.peuple[ville];
         Foule f = p.foules[q][r];
-        int place = f.choisirChef(ville, annee, p.reglages.ageAdulte);
+        int place = f.choisirChef(ville, annee, p.reglages.ageAdulte, -1);
         if (place < 0) return -1;
         int e = nombre;
         if (e == peuple.length) agrandir();
@@ -210,7 +220,8 @@ public class Etats {
         fin[e] = VIVANT;
         ennemi[e] = -1;
         legitimite[e] = reglages.legitimiteDepart;
-        introniser(f, e, place, annee);
+        regne[e] = -1;
+        introniser(p, f, e, place, annee);
         regionEtat[r] = e;
         tenues[e] = 1;
         sujets[e] = p.habitants[r];
@@ -219,9 +230,22 @@ public class Etats {
         return e;
     }
 
-    private void introniser(Foule f, int e, int place, int annee) {
+    
+    private void introniser(Population p, Foule f, int e, int place, int annee) {
+        long ancien = chef[e];
+        int avant = regne[e];
+        p.maisons.finir(avant, annee);
+        byte lien = Maisons.ETRANGER;
+        int lignee = f.maisonDe(place);
+        if (avant >= 0 && f.estEnfantDe(place, ancien)) lien = Maisons.ENFANT;
+        else if (avant >= 0 && lignee >= 0 && lignee == maison[e]) lien = Maisons.PARENT;
+        if (lignee < 0) lignee = p.maisons.fonder(peuple[e], f.idDe(place), annee, e);
+        maison[e] = lignee;
+        f.couronner(place, lignee);
+        regne[e] = p.maisons.commencer(f.idDe(place), f.sexeDe(place), lignee, e, annee, avant, lien);
         slotChef[e] = place;
         chef[e] = f.idDe(place);
+
         debutRegne[e] = (short) annee;
         chefAmbition[e] = f.ambitionDe(place);
         chefCourage[e] = f.courageDe(place);
@@ -229,34 +253,63 @@ public class Etats {
         chefBien[e] = f.bienDe(place);
     }
 
-    private void verifierChef(Population p, int e, int annee) {
+        private void verifierChef(Population p, int e, int annee) {
         Foule f = p.foules[peuple[e]][regionCapitale[e]];
         if (f.estEnVie(slotChef[e], chef[e])) return;
         long ancien = chef[e];
-        int place = f.choisirChef(capitale[e], annee, p.reglages.ageAdulte);
+        int adulte = p.reglages.ageAdulte;
+        int heritier = f.choisirHeritier(maison[e], annee, adulte);
+        if (heritier >= 0) {
+            introniser(p, f, e, heritier, annee);
+            heritages++;
+            legitimite[e] = Math.max(0f, legitimite[e] - 2f);
+            chronique.noter(annee, Chronique.SUCCESSION, e, -1, regionCapitale[e], chef[e]);
+            if (f.estMineur(heritier, annee, adulte)) {
+                regences++;
+                legitimite[e] = Math.max(0f, legitimite[e] - 5f);
+                chronique.noter(annee, Chronique.REGENCE, e, -1, regionCapitale[e], chef[e]);
+            }
+            usurper(p, f, e, heritier, annee);
+            return;
+        }
+        int place = f.choisirChef(capitale[e], annee, adulte, -1);
         if (place < 0) {
             chronique.noter(annee, Chronique.EXTINCTION, e, -1, regionCapitale[e], ancien);
+            p.maisons.finir(regne[e], annee);
             tomber(e, annee);
             return;
         }
-        introniser(f, e, place, annee);
-        legitimite[e] = Math.max(0f, legitimite[e] - 5f);
-        chronique.noter(annee, Chronique.SUCCESSION, e, -1, regionCapitale[e], chef[e]);
+        introniser(p, f, e, place, annee);
+        crises++;
+        legitimite[e] = Math.max(0f, legitimite[e] - 10f);
+        chronique.noter(annee, Chronique.CRISE, e, -1, regionCapitale[e], chef[e]);
     }
+
+    private void usurper(Population p, Foule f, int e, int heritier, int annee) {
+        int rival = f.chercherPretendant(maison[e], heritier, annee, p.reglages.ageAdulte);
+        if (rival < 0 || alea() >= reglages.usurpation) return;
+        f.executer(heritier, annee);
+        introniser(p, f, e, rival, annee);
+        usurpations++;
+        legitimite[e] = Math.max(0f, legitimite[e] - 15f);
+        chronique.noter(annee, Chronique.USURPATION, e, -1, -1, chef[e]);
+    }
+
 
     private void contester(Population p, int e, int annee) {
         if (legitimite[e] < reglages.seuilRevolution && alea() < reglages.chanceRevolution) {
             Foule f = p.foules[peuple[e]][regionCapitale[e]];
             long tyran = chef[e];
             f.executer(slotChef[e], annee);
-            int place = f.choisirChef(capitale[e], annee, p.reglages.ageAdulte);
+            int place = f.choisirChef(capitale[e], annee, p.reglages.ageAdulte, maison[e]);
             chronique.noter(annee, Chronique.REVOLUTION, e, -1, regionCapitale[e], tyran);
             revolutions++;
             if (place < 0) {
+                p.maisons.finir(regne[e], annee);
                 tomber(e, annee);
                 return;
             }
-            introniser(f, e, place, annee);
+            introniser(p, f, e, place, annee);
             legitimite[e] = reglages.legitimiteDepart;
             return;
         }
@@ -382,6 +435,7 @@ public class Etats {
         chronique.noter(annee, tues > 0 ? Chronique.SAC : Chronique.CONQUETE, a, d, r, tues);
         if (r == regionCapitale[d]) {
             chronique.noter(annee, Chronique.CHUTE, d, a, r, chef[a]);
+            p.maisons.finir(regne[d], annee);
             tomber(d, annee);
             ennemi[a] = -1;
         }
@@ -408,4 +462,48 @@ public class Etats {
     public int vivants() {
         return nombre - chutes;
     }
+    public void archiver(Archive a) throws java.io.IOException {
+        nombre = a.entier(nombre);
+        chutes = a.entier(chutes);
+        guerres = a.entier(guerres);
+        revolutions = a.entier(revolutions);
+        crises = a.entier(crises);
+        regences = a.entier(regences);
+        usurpations = a.entier(usurpations);
+        heritages = a.entier(heritages);
+        mortsAuCombat = a.grand(mortsAuCombat);
+        mortsDesSacs = a.grand(mortsDesSacs);
+        hasard = a.grand(hasard);
+        a.entiers(regionEtat, regionEtat.length);
+        peuple = a.octets(peuple, nombre);
+        capitale = a.entiers(capitale, nombre);
+        regionCapitale = a.entiers(regionCapitale, nombre);
+        fondation = a.courts(fondation, nombre);
+        fin = a.courts(fin, nombre);
+        chef = a.longs(chef, nombre);
+        debutRegne = a.courts(debutRegne, nombre);
+        chefAmbition = a.octets(chefAmbition, nombre);
+        chefCourage = a.octets(chefCourage, nombre);
+        chefLoi = a.octets(chefLoi, nombre);
+        chefBien = a.octets(chefBien, nombre);
+        legitimite = a.reels(legitimite, nombre);
+        soldats = a.reels(soldats, nombre);
+        tresor = a.reels(tresor, nombre);
+        tenues = a.entiers(tenues, nombre);
+        sujets = a.entiers(sujets, nombre);
+        tenuesMax = a.entiers(tenuesMax, nombre);
+        ennemi = a.entiers(ennemi, nombre);
+        maison = a.entiers(maison, nombre);
+        regne = a.entiers(regne, nombre);
+        slotChef = a.entiers(slotChef, nombre);
+        revenu = a.reels(revenu, nombre);
+        armeeDeDepart = a.reels(armeeDeDepart, nombre);
+        debutGuerre = a.courts(debutGuerre, nombre);
+        attaquant = a.booleens(attaquant, nombre);
+        voisinFaible = a.entiers(voisinFaible, nombre);
+        cible = a.entiers(cible, nombre);
+        origine = a.entiers(origine, nombre);
+        chronique.archiver(a);
+    }
+
 }

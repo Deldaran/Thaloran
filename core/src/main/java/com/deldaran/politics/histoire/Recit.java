@@ -4,8 +4,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 public final class Recit {
-    private static final String[] RANGS = { "le seigneur", "le thane", "le roi", "le chef de guerre" };
-    private static final String[] SIGNATURES = { "Annales écrites par ", "Vie écrite par ", "Récit écrit par ", "Complainte écrite par " };
+    private static final String[][] RANGS = { { "le seigneur", "la dame" }, { "le thane", "la thane" }, { "le roi", "la reine" }, { "le chef de guerre", "la cheffe de guerre" } };
+    private static final String[] SIGNATURES = { "Annales écrites par ", "Vie écrite par ", "Récit écrit par ", "Complainte écrite par ", "", "Généalogie écrite par " };
+    private static final String[] FAMILLES = { "la lignée", "le clan", "la maison", "la horde" };
     private static final String[][] ANCIENS = {
         { "Les aînés se souviennent que ", "Il nous a été transmis que ", "Les feuilles murmurent encore que " },
         { "Les anciens de la forge disent que ", "Il est gravé dans nos mémoires que ", "Mon clan raconte que " },
@@ -49,7 +50,7 @@ public final class Recit {
     }
 
     private static String chef(Population p, int e, long id, Savoir.Souvenir s) {
-        String nom = Noms.personne(p.etats.peuple[e], p.graine, id);
+        String nom = Noms.personne(p.etats.peuple[e], p.graine, id, p.maisons.sexeDe(id));
         return Noms.deformer(nom, (s.graine & 3L) * 1000003L + id, degre(s.stade));
     }
 
@@ -60,9 +61,27 @@ public final class Recit {
         return debut + phrase;
     }
 
-    private static String rang(Population p, int e) {
-        return RANGS[p.etats.peuple[e]];
+    private static String rang(Population p, int e, boolean femme) {
+        return RANGS[p.etats.peuple[e]][femme ? 1 : 0];
     }
+
+    public static String nomMaison(Population p, int m) {
+        Maisons x = p.maisons;
+        long fondateur = x.fondateur[m];
+        return FAMILLES[x.peuple[m]] + " " + de(Noms.personne(x.peuple[m], p.graine, fondateur, x.sexeDe(fondateur)));
+    }
+
+    private static String heritage(Population p, int e, long id, Savoir.Souvenir s, String a) {
+        Maisons x = p.maisons;
+        String nom = chef(p, e, id, s);
+        int r = x.regneDe(id);
+        int avant = r < 0 ? -1 : x.precedent[r];
+        if (avant < 0 || x.lien[r] == Maisons.ETRANGER) return choix(s, nom + " a pris le pouvoir à " + a, nom + " est monté" + (x.sexeDe(id) == 1 ? "e" : "") + " sur le trône " + de(a));
+        String ancien = chef(p, e, x.personne[avant], s);
+        if (x.lien[r] == Maisons.ENFANT) return nom + " a succédé à " + (x.sexe[avant] == 1 ? "sa mère " : "son père ") + ancien + " sur le trône " + de(a);
+        return nom + ", de la famille de " + ancien + ", a hérité du trône " + de(a);
+    }
+
 
     private static String morts(long nombre, float ampleur, int stade) {
         long n = Math.round(nombre * ampleur);
@@ -83,15 +102,37 @@ public final class Recit {
         String a = etat(p, sujet, s);
         String b = objet >= 0 ? etat(p, objet, s) : "";
         int stade = s.stade;
+        boolean femme = Maisons.porteRegnant(c.type[i]) && p.maisons.sexeDe(c.valeur[i]) == 1;
+        String e1 = femme ? "e" : "";
+
         switch (c.type[i]) {
             case Chronique.FONDATION: {
                 String nom = chef(p, sujet, c.valeur[i], s);
-                if (stade >= 3) return choix(s, "le dieu " + nom + " a tiré " + a + " du néant de ses propres mains", nom + ", fils du ciel, a dressé " + a + " en une nuit");
-                if (stade == 2) return nom + " le Grand a bâti " + a + " en une seule saison";
+                if (stade >= 3) return choix(s, (femme ? "la déesse " : "le dieu ") + nom + " a tiré " + a + " du néant de ses propres mains", nom + (femme ? ", fille du ciel," : ", fils du ciel,") + " a dressé " + a + " en une nuit");
+                if (stade == 2) return nom + (femme ? " la Grande" : " le Grand") + " a bâti " + a + " en une seule saison";
                 return choix(s, nom + " a fondé " + a, a + " est née de la volonté de " + nom);
             }
             case Chronique.SUCCESSION:
-                return choix(s, chef(p, sujet, c.valeur[i], s) + " a pris le pouvoir à " + a, chef(p, sujet, c.valeur[i], s) + " est monté sur le trône " + de(a));
+                return heritage(p, sujet, c.valeur[i], s, a);
+            case Chronique.CRISE: {
+                String nom = chef(p, sujet, c.valeur[i], s);
+                if (stade >= 2) return "le sang des anciens maîtres " + de(a) + " s'est tari, et " + nom + " a saisi la couronne";
+                return choix(s, "sans héritier, le trône " + de(a) + " est passé à " + nom, "la lignée " + de(a) + " s'est éteinte, et " + nom + " a pris le pouvoir");
+            }
+            case Chronique.REGENCE: {
+                String nom = chef(p, sujet, c.valeur[i], s);
+                return choix(s, "l'enfant " + nom + " a hérité du trône " + de(a) + ", et d'autres ont gouverné à sa place", a + " a été confiée à des régents au nom " + (femme ? "de la jeune " : "du jeune ") + nom);
+            }
+            case Chronique.USURPATION: {
+                String nom = chef(p, sujet, c.valeur[i], s);
+                int r = p.maisons.regneDe(c.valeur[i]);
+                int avant = r < 0 ? -1 : p.maisons.precedent[r];
+                String victime = avant < 0 ? "l'héritier légitime" : chef(p, sujet, p.maisons.personne[avant], s);
+                if (stade >= 3) return nom + " a égorgé les siens sous les yeux des dieux pour régner sur " + a;
+                if (ton < 0) return nom + " a fait assassiner " + victime + ", de son propre sang, pour voler le trône " + de(a);
+                return nom + " a écarté " + victime + " et pris le trône " + de(a);
+            }
+
             case Chronique.GUERRE: {
                 String cause = c.lieu[i] >= 0 && stade < 2 ? " pour son " + Economie.NOMS[c.lieu[i]] : "";
                 if (stade >= 3) return "les dieux " + de(a) + " ont déclaré la guerre à ceux " + de(b);
@@ -120,9 +161,9 @@ public final class Recit {
             }
             case Chronique.REVOLUTION: {
                 String nom = chef(p, sujet, c.valeur[i], s);
-                String titre = rang(p, sujet) + " " + nom;
-                if (stade >= 3) return choix(s, nom + " a été changé en bête, et le peuple " + de(a) + " l'a chassé", nom + " a défié le ciel, et la foudre l'a brûlé devant les portes " + de(a));
-                if (stade == 2) return choix(s, nom + " le Maudit a été jeté du haut des murs " + de(a), "on a pendu " + nom + " le Cruel aux portes " + de(a));
+                String titre = rang(p, sujet, femme) + " " + nom;
+                if (stade >= 3) return choix(s, nom + " a été changé" + e1 + " en bête, et le peuple " + de(a) + " l'a chassé" + e1, nom + " a défié le ciel, et la foudre l'a brûlé" + e1 + " devant les portes " + de(a));
+                if (stade == 2) return choix(s, nom + (femme ? " la Maudite a été jetée" : " le Maudit a été jeté") + " du haut des murs " + de(a), "on a pendu" + e1 + " " + nom + (femme ? " la Cruelle" : " le Cruel") + " aux portes " + de(a));
                 if (ton < 0) return choix(s, "la canaille " + de(a) + " a assassiné " + titre, "une foule enragée a égorgé " + titre + " dans son palais " + de(a), "des traîtres ont poignardé " + titre + " à " + a, "le peuple " + de(a) + " s'est soulevé, et " + titre + " y a perdu la vie");
                 return choix(s, "le peuple " + de(a) + " a renversé et tué " + titre, a + " s'est soulevée contre " + titre + ", qui n'y a pas survécu", titre + " a fini sous les coups de son propre peuple, à " + a);
             }
@@ -175,7 +216,7 @@ public final class Recit {
     private static String avis(Population p, Savoir.Temoin t, Savoir.Souvenir s, int ton) {
         byte quoi = p.etats.chronique.type[s.fait];
         if (quoi == Chronique.REVOLUTION && t.loi > 30) return " Le désordre ne mène à rien de bon.";
-        if (quoi == Chronique.REVOLUTION && t.loi < -30) return " Bien fait pour lui.";
+        if (quoi == Chronique.REVOLUTION && t.loi < -30) return " Bien fait.";
         if (ton < 0 && t.bien > 20) return " Que les morts reposent.";
         if (ton < 0 && t.bien < -20) return " Un jour, on le leur fera payer.";
         if (ton > 0 && t.bien < -20) return " Ils n'ont eu que ce qu'ils méritaient.";
@@ -198,12 +239,15 @@ public final class Recit {
     }
 
     public static String presenter(Population p, Savoir.Temoin t) {
-        String nom = Noms.personne(t.peuple, p.graine, t.id);
+        String nom = Noms.personne(t.peuple, p.graine, t.id, t.sexe);
+        if (t.maison >= 0) nom += ", de " + nomMaison(p, t.maison);
         int age = p.annee - t.naissance;
         String lieu = t.ville >= 0 ? Noms.ville(p.villes.peuple[t.ville], p.graine, t.ville) : "la campagne";
-        String culture = t.instruction >= 50 ? "lettré" : t.instruction >= p.livres.reglages.lecture ? "sait lire" : t.instruction >= 20 ? "peu instruit" : "illettré";
+        String e1 = t.sexe == 1 ? "e" : "";
+        String culture = t.instruction >= 50 ? "lettré" + e1 : t.instruction >= p.livres.reglages.lecture ? "sait lire" : t.instruction >= 20 ? "peu instruit" + e1 : "illettré" + e1;
         return nom + ", " + p.reglages.peuples[t.peuple].nom + ", " + age + " ans, " + lieu + " (" + culture + ", instruction " + t.instruction + ")";
     }
+
 
     private static Savoir.Temoin chercher(Population p, int genre, long tirage) {
         java.util.Random hasard = new java.util.Random(tirage);
@@ -259,6 +303,21 @@ public final class Recit {
         return "Aucun livre n'a survécu.";
     }
 
+    public static String grandesMaisons(Population p, int nombre) {
+        Maisons x = p.maisons;
+        Integer[] ordre = new Integer[x.nombre];
+        for (int m = 0; m < x.nombre; m++) ordre[m] = m;
+        java.util.Arrays.sort(ordre, (a, b) -> x.anneesRegnees[b] - x.anneesRegnees[a]);
+        StringBuilder texte = new StringBuilder();
+        for (int k = 0; k < Math.min(nombre, ordre.length); k++) {
+            int m = ordre[k];
+            int e = x.dernierEtat[m];
+            String trone = Noms.ville(p.etats.peuple[e], p.graine, p.etats.capitale[e]);
+            texte.append(majuscule(nomMaison(p, m))).append(" : ").append(x.regnes[m]).append(" règnes, ").append(x.anneesRegnees[m]).append(" ans de pouvoir, née en ").append(x.fondation[m]).append(", dernier trône ").append(trone).append(p.etats.estVivant(e) && p.etats.maison[e] == m ? " (règne encore)" : "").append('\n');
+        }
+        return texte.toString();
+    }
+
     public static String verite(Population p, int nombre) {
         StringBuilder texte = new StringBuilder();
         Chronique c = p.etats.chronique;
@@ -282,6 +341,7 @@ public final class Recit {
         switch (l.type[o]) {
             case Livres.ANNALES: return "Annales " + de(l.etat[o] >= 0 ? etat(p, l.etat[o], s) : nom);
             case Livres.VIE: return "Vie " + de(chef(p, sujet, c.valeur[s.fait], s));
+            case Livres.LIGNEE: return "La Généalogie " + de(nom);
             case Livres.GUERRE: return "Les Guerres " + de(nom);
             case Livres.COMPLAINTE: return "Complainte pour " + nom;
             default: return "Le Chant " + de(nom);
@@ -304,6 +364,7 @@ public final class Recit {
         switch (l.type[o]) {
             case Livres.ANNALES: return "Voici ce que les scribes " + de(ville) + " ont jugé digne d'être retenu.\n\n";
             case Livres.VIE: return "Que ceux qui viendront sachent ce que fut ce temps.\n\n";
+            case Livres.LIGNEE: return "Voici, de mémoire de scribe, la suite de ceux qui ont tenu ce trône.\n\n";
             case Livres.GUERRE: return "J'écris ceci pour que ces guerres ne soient pas oubliées.\n\n";
             default: return "";
         }
@@ -322,7 +383,8 @@ public final class Recit {
             if (source >= 0 && source != o && l.ecrit[source]) sources.add(source);
         }
         for (int source : sources) {
-            fin.append("\nL'auteur cite \"").append(titre(p, source)).append("\", de ").append(Noms.personne(l.peuple[source], p.graine, l.auteur[source])).append('.');
+            fin.append("\nL'auteur cite \"").append(titre(p, source)).append("\", de ").append(Noms.personne(l.peuple[source], p.graine, l.auteur[source], l.auteurSexe[source])).append('.');
+
         }
         return fin.toString();
     }
@@ -330,7 +392,7 @@ public final class Recit {
     public static String lire(Population p, int o) {
         Livres l = p.livres;
         StringBuilder texte = new StringBuilder();
-        String auteur = Noms.personne(l.peuple[o], p.graine, l.auteur[o]);
+        String auteur = Noms.personne(l.peuple[o], p.graine, l.auteur[o], l.auteurSexe[o]);
         String ville = Noms.ville(l.peuple[o], p.graine, l.ville[o]);
         if (l.ecrit[o]) texte.append(SIGNATURES[l.type[o]]).append(auteur).append(", à ").append(ville).append(".\n\n");
         else texte.append("Chant né à ").append(ville).append(", et que l'on doit à ").append(auteur).append(".\n\n");

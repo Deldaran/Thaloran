@@ -20,12 +20,13 @@ public final class Noms {
         { "gash", "mok", "dush", "rog", "gul", "nakh", "zug", "kar", "bur", "lug", "murk", "rath", "shak", "tuk" }
     };
 
-    private static final String[][] FINS_PERSONNES = {
-        { "ndil", "riel", "wyn", "las", "thien", "dor", "mir", "ael" },
-        { "in", "ur", "ik", "or", "grim", "dain", "bur", "rin" },
-        { "ric", "bert", "mond", "aud", "ard", "ine", "elle", "ian" },
-        { "ug", "ash", "ok", "uk", "ar", "um", "ag", "oth" }
+    private static final String[][][] FINS_PERSONNES = {
+        { { "ndil", "las", "dor", "mir", "ael", "ion" }, { "riel", "wyn", "thien", "lune", "wen", "ia" } },
+        { { "in", "ur", "ik", "or", "grim", "dain", "bur", "rin" }, { "dis", "na", "hild", "run", "gda", "ra" } },
+        { { "ric", "bert", "mond", "aud", "ard", "ian" }, { "ine", "elle", "ette", "ane", "ise", "ia" } },
+        { { "ug", "ash", "ok", "uk", "um", "oth" }, { "ra", "sha", "ga", "ka", "ha", "za" } }
     };
+
 
 
     private Noms() {
@@ -38,12 +39,13 @@ public final class Noms {
         return choisir(DEBUTS[peuple], h) + choisir(MILIEUX[peuple], h >>> 12) + choisir(FINS[peuple], h >>> 24);
     }
     
-    public static String personne(int peuple, long graine, long numero) {
+    public static String personne(int peuple, long graine, long numero, int sexe) {
         long h = graine * 0xD1342543DE82EF95L + numero * 0x9E3779B97F4A7C15L + peuple;
         h = (h ^ (h >>> 29)) * 0xBF58476D1CE4E5B9L;
         h ^= h >>> 32;
-        return choisir(DEBUTS[peuple], h) + choisir(FINS_PERSONNES[peuple], h >>> 16);
+        return choisir(DEBUTS[peuple], h) + choisir(FINS_PERSONNES[peuple][sexe], h >>> 16);
     }
+
 
     public static String deformer(String nom, long graine, int degre) {
         StringBuilder mot = new StringBuilder(nom);

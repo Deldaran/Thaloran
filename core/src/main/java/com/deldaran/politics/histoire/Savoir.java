@@ -16,6 +16,9 @@ public final class Savoir {
         public int instruction;
         public int loi;
         public int bien;
+        public int sexe;
+        public int maison;
+        public int talent;
         public long id;
     }
 
@@ -48,7 +51,12 @@ public final class Savoir {
             case Chronique.CHUTE: base = 5f; break;
             case Chronique.FONDATION:
             case Chronique.REVOLUTION:
+            case Chronique.USURPATION:
+            case Chronique.CRISE:
             case Chronique.EXTINCTION: base = 3f; break;
+            case Chronique.SUCCESSION:
+            case Chronique.REGENCE: base = 1.5f; break;
+
             case Chronique.SAC: base = 2f + Math.min(3f, c.valeur[i] / 200f); break;
             case Chronique.GUERRE:
             case Chronique.SECESSION: base = 2f; break;
@@ -96,6 +104,9 @@ public final class Savoir {
         t.id = f.idDe(place);
         t.loi = f.loiDe(place);
         t.bien = f.bienDe(place);
+        t.sexe = f.sexeDe(place);
+        t.maison = f.maisonDe(place);
+        t.talent = f.talentDe(place);
         t.instruction = p.livres.instruction(p, t);
         return t;
     }
@@ -111,6 +122,7 @@ public final class Savoir {
             case Chronique.SECESSION: gagnant = c.sujet[i]; perdant = c.objet[i]; break;
             case Chronique.FONDATION: gagnant = c.sujet[i]; break;
             case Chronique.REVOLUTION:
+            case Chronique.USURPATION:
             case Chronique.EXTINCTION: perdant = c.sujet[i]; break;
             default: break;
         }

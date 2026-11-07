@@ -20,6 +20,8 @@ public final class Peuple {
     public float loi = 0f;
     public float bien = 0f;
     public float lettres = 0.5f;
+    public static final byte AINE = 0, MALE = 1, FORT = 2;
+    public byte succession = AINE;
 
     public final float[] attrait = new float[12];
 
@@ -71,6 +73,8 @@ public final class Peuple {
         humain.attrait[Biome.MONTAGNE] = 0.1f;
         humain.attrait[Biome.TOUNDRA] = 0.05f;
         humain.attrait[Biome.DESERT] = 0.03f;
+        humain.succession = MALE;
+
 
         Peuple ork = new Peuple("Orks");
         ork.rythme = 1.5f;
@@ -83,6 +87,8 @@ public final class Peuple {
         ork.loi = -40f;
         ork.bien = -50f;
         ork.lettres = 0.1f;
+        ork.succession = FORT;
+
         ork.attrait[Biome.TOUNDRA] = 0.5f;
         ork.attrait[Biome.DESERT] = 0.4f;
         ork.attrait[Biome.MONTAGNE] = 0.5f;

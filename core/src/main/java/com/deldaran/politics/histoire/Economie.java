@@ -217,4 +217,23 @@ public class Economie {
         }
         return total;
     }
+    public void archiver(Archive a) throws java.io.IOException {
+        int n = regions.nombre;
+        for (int g = 0; g < NOMBRE; g++) {
+            a.reels(stock[g], n);
+            a.reels(production[g], n);
+            a.reels(besoin[g], n);
+            a.reels(prix[g], n);
+            a.reels(valeur[g], n);
+        }
+        a.reels(importe, n);
+        a.reels(exporte, n);
+        a.reels(trafic, n);
+        a.doubles(bourse, n);
+        a.doubles(produit, NOMBRE);
+        a.doubles(consomme, NOMBRE);
+        a.doubles(perdu, NOMBRE);
+        a.doubles(echange, NOMBRE);
+    }
+
 }

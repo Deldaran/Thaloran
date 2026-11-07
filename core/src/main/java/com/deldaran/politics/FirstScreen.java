@@ -43,6 +43,8 @@ public class FirstScreen implements Screen {
     Simulation simulation;
     FileHandle fichierMonde;
     boolean mondeEnregistre;
+    FileHandle fichierHistoire;
+    boolean reprendreHistoire = true;
     Regions regions;
     final Regions.Reglages reglagesRegions = new Regions.Reglages();
     final Population.Reglages reglagesPopulation = new Population.Reglages();
@@ -86,7 +88,7 @@ public class FirstScreen implements Screen {
         simulation = new Simulation(monde);
         fichierMonde = Gdx.files.external("Politics/mondes/monde-" + GRAINE + ".bin");
         mondeEnregistre = Sauvegarde.charger(monde, simulation, fichierMonde);
-
+        fichierHistoire = Gdx.files.external("Politics/mondes/histoire-" + GRAINE + ".bin");
         
         carte = new CarteCube(monde.sphere);
         rendu = new RenduGlobe();
@@ -127,7 +129,7 @@ public class FirstScreen implements Screen {
             regions = new Regions(monde, simulation.climat.hauteurPlaines, reglagesRegions);
         }
         if (histoire == null && regions != null) {
-            histoire = new Histoire(monde, regions, reglagesPopulation);
+            histoire = new Histoire(monde, regions, reglagesPopulation, fichierHistoire, reprendreHistoire);
         }
         if (histoire != null) {
             histoire.enPause = enPause;
@@ -388,6 +390,11 @@ public class FirstScreen implements Screen {
         infoHistoire(sectionHistoire, "Age moyen au deces", () -> String.format("%.1f ans", histoire.population.ageMoyenAuDeces));
         infoHistoire(sectionHistoire, "Duree d'une annee", () -> String.format("%.1f ms", histoire.msParAn));
         sectionHistoire.ajouterBouton("Recommencer", this::arreterHistoire);
+        infoHistoire(sectionHistoire, "Sauvegarde", () -> histoire.sauvegarde);
+        sectionHistoire.ajouterBouton("Sauvegarder maintenant", () -> {
+            if (histoire != null) histoire.demander(histoire::enregistrer);
+        });
+
 
         Population.Reglages p = reglagesPopulation;
         FenetreDebug.Section depart = sectionHistoire.ajouterSection("Depart");
@@ -426,6 +433,17 @@ public class FirstScreen implements Screen {
         for (int rang = 0; rang < 6; rang++) {
             ajouterFait(sectionChronique, rang);
         }
+        
+        FenetreDebug.Section sectionFamilles = sectionHistoire.ajouterSection("Familles");
+        infoHistoire(sectionFamilles, "Maisons", () -> String.valueOf(histoire.population.maisons.nombre));
+        infoHistoire(sectionFamilles, "Regnes", () -> String.valueOf(histoire.population.maisons.nombreRegnes));
+        infoHistoire(sectionFamilles, "Heritages", () -> String.valueOf(histoire.population.etats.heritages));
+        infoHistoire(sectionFamilles, "Crises", () -> String.valueOf(histoire.population.etats.crises));
+        infoHistoire(sectionFamilles, "Regences", () -> String.valueOf(histoire.population.etats.regences));
+        infoHistoire(sectionFamilles, "Usurpations", () -> String.valueOf(histoire.population.etats.usurpations));
+        sectionFamilles.ajouterBouton("Voir les grandes maisons", () -> montrerTexte("Maisons", q -> Recit.grandesMaisons(q, 25)));
+        sectionFamilles.ajouterSlider("Chance d'usurpation", 0f, 0.5f, 0.01f, reglagesEtats.usurpation, v -> reglagesEtats.usurpation = v);
+
 
         Livres.Reglages reglagesLivres = p.livres;
         FenetreDebug.Section sectionSavoir = sectionHistoire.ajouterSection("Savoir");
@@ -467,7 +485,7 @@ public class FirstScreen implements Screen {
         }
 
     }
-    
+
     private void montrerTexte(String titre, Function<Population, String> texte) {
         if (histoire == null) return;
         Histoire courante = histoire;
@@ -532,6 +550,7 @@ public class FirstScreen implements Screen {
     }
 
     private void arreterHistoire() {
+        reprendreHistoire = false;
         if (histoire != null) {
             histoire.arreter();
             histoire = null;

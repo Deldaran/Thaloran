@@ -73,4 +73,17 @@ public class Villes {
         }
         return meilleures;
     }
+    public void archiver(Archive a) throws java.io.IOException {
+        nombre = a.entier(nombre);
+        ruines = a.entier(ruines);
+        caseDe = a.entiers(caseDe, nombre);
+        region = a.entiers(region, nombre);
+        peuple = a.octets(peuple, nombre);
+        fondation = a.courts(fondation, nombre);
+        fin = a.courts(fin, nombre);
+        habitants = a.entiers(habitants, nombre);
+        pic = a.entiers(pic, nombre);
+        anneePic = a.courts(anneePic, nombre);
+    }
+
 }

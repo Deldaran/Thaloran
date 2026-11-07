@@ -6,8 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 
 public class Livres {
-    public static final byte ANNALES = 0, VIE = 1, GUERRE = 2, COMPLAINTE = 3, CHANSON = 4;
-    public static final int TYPES = 5;
+    public static final byte ANNALES = 0, VIE = 1, GUERRE = 2, COMPLAINTE = 3, CHANSON = 4, LIGNEE = 5;
+    public static final int TYPES = 6;
+
     private static final int TAILLE_DEPART = 256;
     private static final int COPIES_MAX = 48;
 
@@ -38,6 +39,7 @@ public class Livres {
     public boolean[] ecrit = new boolean[TAILLE_DEPART];
     public short[] annee = new short[TAILLE_DEPART];
     public long[] auteur = new long[TAILLE_DEPART];
+    public byte[] auteurSexe = new byte[TAILLE_DEPART];
     public byte[] peuple = new byte[TAILLE_DEPART];
     public int[] ville = new int[TAILLE_DEPART];
     public int[] etat = new int[TAILLE_DEPART];
@@ -85,6 +87,7 @@ public class Livres {
         ecrit = Arrays.copyOf(ecrit, n);
         annee = Arrays.copyOf(annee, n);
         auteur = Arrays.copyOf(auteur, n);
+        auteurSexe = Arrays.copyOf(auteurSexe, n);
         peuple = Arrays.copyOf(peuple, n);
         ville = Arrays.copyOf(ville, n);
         etat = Arrays.copyOf(etat, n);
@@ -174,7 +177,8 @@ public class Livres {
             int proche = t.region < plusGrande.length ? plusGrande[t.region] : -1;
             base = proche >= 0 ? savoir[proche] * 0.15f : 0f;
         }
-        float u = Savoir.tirage(t.id, 0x1E77L);
+
+        float u = t.talent / 100f;
         return Math.min(100, Math.round(base * 2.2f * u * u));
     }
 
@@ -233,7 +237,7 @@ public class Livres {
             byte quoi = ch.type[principal.fait];
             int ton = Savoir.ton(p, t.etat, q, principal.fait);
             if ((quoi == Chronique.SAC || quoi == Chronique.CHUTE) && ton <= 0) genre = COMPLAINTE;
-            else if (quoi == Chronique.FONDATION || quoi == Chronique.REVOLUTION || quoi == Chronique.SUCCESSION) genre = VIE;
+            else if (Maisons.porteRegnant(quoi)) genre = VIE;
             else genre = GUERRE;
             choisis.add(principal);
             int epoque = Math.round(40f / p.reglages.peuples[q].rythme);
@@ -242,10 +246,30 @@ public class Livres {
                 if (genre != VIE || Math.abs(ch.annee[s.fait] - ch.annee[principal.fait]) <= epoque) choisis.add(s);
             }
         }
+
+        if (genre == VIE && alea() < 0.5f) {
+            int lignee = maisonDu(p, principal.fait);
+            List<Savoir.Souvenir> famille = new ArrayList<>();
+            for (Savoir.Souvenir s : memoire) {
+                if (famille.size() < 10 && lignee >= 0 && maisonDu(p, s.fait) == lignee) famille.add(s);
+            }
+            if (famille.size() >= 3) {
+                genre = LIGNEE;
+                choisis = famille;
+            }
+        }
+
         long cle = ((long) c << 32) | ((long) principal.fait << 3) | genre;
         if (!traites.add(cle)) return;
-        choisis.sort((a, b) -> ch.annee[a.fait] - ch.annee[b.fait]);
+        choisis.sort((a, b) -> a.fait - b.fait); 
         enregistrer(genre, lettree, an, t, q, c, principal.fait, choisis);
+    }
+
+    private int maisonDu(Population p, int fait) {
+        Chronique ch = p.etats.chronique;
+        if (!Maisons.porteRegnant(ch.type[fait])) return -1;
+        int r = p.maisons.regneDe(ch.valeur[fait]);
+        return r < 0 ? -1 : p.maisons.maison[r];
     }
 
     private void enregistrer(byte genre, boolean lettree, int an, Savoir.Temoin t, int q, int c, int fait, List<Savoir.Souvenir> choisis) {
@@ -255,6 +279,7 @@ public class Livres {
         ecrit[o] = lettree;
         annee[o] = (short) an;
         auteur[o] = t.id;
+        auteurSexe[o] = (byte) t.sexe;
         peuple[o] = (byte) q;
         ville[o] = c;
         etat[o] = t.etat;
@@ -324,4 +349,43 @@ public class Livres {
     public int vivantes() {
         return nombre - perdues;
     }
+    public void archiver(Archive a) throws java.io.IOException {
+        nombre = a.entier(nombre);
+        perdues = a.entier(perdues);
+        totalVersions = a.entier(totalVersions);
+        curseur = a.entier(curseur);
+        hasard = a.grand(hasard);
+        a.entiers(parType, TYPES);
+        savoir = a.reels(savoir, savoir.length);
+        type = a.octets(type, nombre);
+        ecrit = a.booleens(ecrit, nombre);
+        annee = a.courts(annee, nombre);
+        auteur = a.longs(auteur, nombre);
+        auteurSexe = a.octets(auteurSexe, nombre);
+        peuple = a.octets(peuple, nombre);
+        ville = a.entiers(ville, nombre);
+        etat = a.entiers(etat, nombre);
+        sujet = a.entiers(sujet, nombre);
+        auteurBien = a.octets(auteurBien, nombre);
+        debutVersions = a.entiers(debutVersions, nombre);
+        nombreVersions = a.entiers(nombreVersions, nombre);
+        nombreCopies = a.entiers(nombreCopies, nombre);
+        if (a.enLecture()) copies = new int[type.length][];
+        for (int o = 0; o < nombre; o++) {
+            copies[o] = a.entiers(copies[o] == null ? new int[0] : copies[o], nombreCopies[o]);
+        }
+        versionFait = a.entiers(versionFait, totalVersions);
+        versionAnnee = a.entiers(versionAnnee, totalVersions);
+        versionAmpleur = a.reels(versionAmpleur, totalVersions);
+        versionStade = a.octets(versionStade, totalVersions);
+        versionGraine = a.longs(versionGraine, totalVersions);
+        versionSource = a.entiers(versionSource, totalVersions);
+        long[] cles = traites.stream().mapToLong(Long::longValue).sorted().toArray();
+        cles = a.longs(cles, cles.length);
+        if (a.enLecture()) {
+            traites.clear();
+            for (long c : cles) traites.add(c);
+        }
+    }
+
 }

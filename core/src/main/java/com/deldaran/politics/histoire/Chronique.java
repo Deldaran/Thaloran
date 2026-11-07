@@ -1,8 +1,9 @@
 package com.deldaran.politics.histoire;
 
 public class Chronique {
-    public static final byte FONDATION = 0, SUCCESSION = 1, GUERRE = 2, PAIX = 3, CONQUETE = 4, SAC = 5, CHUTE = 6, REVOLUTION = 7, SECESSION = 8, EXTINCTION = 9;
-    public static final int TYPES = 10;
+    public static final byte FONDATION = 0, SUCCESSION = 1, GUERRE = 2, PAIX = 3, CONQUETE = 4, SAC = 5, CHUTE = 6, REVOLUTION = 7, SECESSION = 8, EXTINCTION = 9, CRISE = 10, REGENCE = 11, USURPATION = 12;
+    public static final int TYPES = 13;
+
     private static final int TAILLE_DEPART = 1024;
 
     public volatile int nombre = 0;
@@ -44,18 +45,28 @@ public class Chronique {
         int q = e.peuple[sujet[i]];
         String debut = "An " + annee[i] + " : ";
         switch (type[i]) {
-            case FONDATION: return debut + Noms.personne(q, p.graine, valeur[i]) + " fonde " + a + ".";
-            case SUCCESSION: return debut + Noms.personne(q, p.graine, valeur[i]) + " prend le pouvoir a " + a + ".";
+            case FONDATION: return debut + personne(p, q, i) + " fonde " + a + ".";
+            case SUCCESSION: return debut + personne(p, q, i) + " prend le pouvoir a " + a + ".";
+            case CRISE: return debut + "sans heritier a " + a + ", " + personne(p, q, i) + " prend le trone.";
+            case REGENCE: return debut + "regence a " + a + " pour l'enfant " + personne(p, q, i) + ".";
+            case USURPATION: return debut + personne(p, q, i) + " usurpe le trone de " + a + ".";
+
             case GUERRE: return debut + a + " attaque " + b + (lieu[i] >= 0 ? " pour son " + Economie.NOMS[lieu[i]] : "") + ".";
             case PAIX: return debut + "paix entre " + a + " et " + b + ".";
             case CONQUETE: return debut + a + " prend une region a " + b + ".";
             case SAC: return debut + a + " met a sac une ville de " + b + " : " + valeur[i] + " morts.";
             case CHUTE: return debut + a + " tombe sous les coups de " + b + ".";
-            case REVOLUTION: return debut + "a " + a + ", le peuple renverse et tue " + Noms.personne(q, p.graine, valeur[i]) + ".";
+            case REVOLUTION: return debut + "a " + a + ", le peuple renverse et tue " + personne(p, q, i) + ".";
+
             case SECESSION: return debut + a + " fait secession de " + b + ".";
             default: return debut + a + " s'eteint, faute de successeur.";
         }
     }
+
+    private String personne(Population p, int q, int i) {
+        return Noms.personne(q, p.graine, valeur[i], p.maisons.sexeDe(valeur[i]));
+    }
+
 
     public int recent(int rang) {
         int vus = 0;
@@ -69,4 +80,15 @@ public class Chronique {
     private String nomEtat(Population p, int e) {
         return Noms.ville(p.etats.peuple[e], p.graine, p.etats.capitale[e]);
     }
+    public void archiver(Archive a) throws java.io.IOException {
+        nombre = a.entier(nombre);
+        a.entiers(parType, TYPES);
+        annee = a.courts(annee, nombre);
+        type = a.octets(type, nombre);
+        sujet = a.entiers(sujet, nombre);
+        objet = a.entiers(objet, nombre);
+        lieu = a.entiers(lieu, nombre);
+        valeur = a.longs(valeur, nombre);
+    }
+
 }

@@ -64,7 +64,7 @@ public class Population {
     public final Etats etats;
     public final Livres livres;
     public final int[] urbainsPeuple = new int[Peuple.NOMBRE];
-
+    public final Maisons maisons = new Maisons();
     public volatile int annee = 0;
     public volatile int vivants = 0;
     public int regionsHabitees = 0;
@@ -337,4 +337,33 @@ public class Population {
         mortsTotales += morts;
         if (morts > 0) ageMoyenAuDeces = (double) ages / morts;
     }
+    public void archiver(Archive a) throws java.io.IOException {
+        annee = a.entier(annee);
+        vivants = a.entier(vivants);
+        regionsHabitees = a.entier(regionsHabitees);
+        naissancesTotales = a.grand(naissancesTotales);
+        mortsTotales = a.grand(mortsTotales);
+        naissances = a.entier(naissances);
+        morts = a.entier(morts);
+        migrants = a.entier(migrants);
+        ageMoyenAuDeces = a.reel(ageMoyenAuDeces);
+        a.entiers(vivantsPeuple, Peuple.NOMBRE);
+        a.entiers(regionsPeuple, Peuple.NOMBRE);
+        a.entiers(urbainsPeuple, Peuple.NOMBRE);
+        a.doubles(ageAuDeces, Peuple.NOMBRE);
+        a.entiers(habitants, habitants.length);
+        a.entiers(villeDe, villeDe.length);
+        for (int q = 0; q < Peuple.NOMBRE; q++) {
+            a.reels(pression[q], pression[q].length);
+            for (Foule f : foules[q]) {
+                if (f != null) f.archiver(a);
+            }
+        }
+        villes.archiver(a);
+        economie.archiver(a);
+        etats.archiver(a);
+        livres.archiver(a);
+        maisons.archiver(a);
+    }
+
 }

@@ -32,6 +32,9 @@ public class Foule {
     private byte[] courage = new byte[TAILLE_DEPART];
     private byte[] foi = new byte[TAILLE_DEPART];
     private short[] lieu = new short[TAILLE_DEPART];
+    private int[] maison = new int[TAILLE_DEPART];
+    private byte[] rang = new byte[TAILLE_DEPART];
+    private byte[] talent = new byte[TAILLE_DEPART];
 
     private int nombreLieux = 1;
     private int[] villes = new int[4];
@@ -55,8 +58,13 @@ public class Foule {
     public long[] partantMere = new long[TAILLE_DEPART];
     public short[] partantNaissance = new short[TAILLE_DEPART];
     public byte[] partantSexe = new byte[TAILLE_DEPART];
-    public byte[] partantCaractere = new byte[TAILLE_DEPART * 5];
-    
+    public byte[] partantCaractere = new byte[TAILLE_DEPART * 6];
+
+
+    private static final int RANG_MAX = 3;
+    private static final int BONUS_NOBLE = 15;
+    private static final long CLE_TALENT = 0x7A1E47L;
+
     public Foule(int region, int indicePeuple, Peuple peuple, int nombreRegions) {
         this.region = region;
         this.indicePeuple = indicePeuple;
@@ -79,10 +87,15 @@ public class Foule {
         courage = java.util.Arrays.copyOf(courage, n);
         foi = java.util.Arrays.copyOf(foi, n);
         lieu = java.util.Arrays.copyOf(lieu, n);
+        maison = java.util.Arrays.copyOf(maison, n);
+        rang = java.util.Arrays.copyOf(rang, n);
+        talent = java.util.Arrays.copyOf(talent, n);
+
         libres = java.util.Arrays.copyOf(libres, n);
         meres = java.util.Arrays.copyOf(meres, n);
         hommes = java.util.Arrays.copyOf(hommes, n);
         femmes = java.util.Arrays.copyOf(femmes, n);
+        
     }
 
     private void agrandirPartants() {
@@ -93,7 +106,8 @@ public class Foule {
         partantMere = java.util.Arrays.copyOf(partantMere, n);
         partantNaissance = java.util.Arrays.copyOf(partantNaissance, n);
         partantSexe = java.util.Arrays.copyOf(partantSexe, n);
-        partantCaractere = java.util.Arrays.copyOf(partantCaractere, n * 5);
+        partantCaractere = java.util.Arrays.copyOf(partantCaractere, n * 6);
+
     }
 
     private int nouvellePlace() {
@@ -163,6 +177,9 @@ public class Foule {
             ambition[p] = hasardCaractere(0f);
             courage[p] = hasardCaractere(0f);
             foi[p] = hasardCaractere(0f);
+            maison[p] = -1;
+            rang[p] = 0;
+            talent[p] = (byte) (Savoir.tirage(id[p], CLE_TALENT) * 100f);
             compte[0]++;
         }
     }
@@ -213,7 +230,7 @@ public class Foule {
             if (age < r.ageAdulte) continue;
             if (conjoint[p] >= 0) {
                 if (sexe[p] == FEMME && age <= r.ageFertileMax && alea() < natalite) meres[nombreMeres++] = p;
-            } else if (age <= AGE_MIGRATION_MAX && alea() < migration) {
+            } else if (age <= AGE_MIGRATION_MAX && alea() < migration && maison[p] < 0) {
                 partir(p, monde);
             } else {
                 if (lieu[p] == 0 && alea() < exode) installerEnVille(p, urbains);
@@ -251,7 +268,11 @@ public class Foule {
         long idMere = id[m], idPere = id[c];
         byte l = heriter(loi[m], loi[c]), b = heriter(bien[m], bien[c]);
         byte a = heriter(ambition[m], ambition[c]), v = heriter(courage[m], courage[c]), f = heriter(foi[m], foi[c]);
-        short foyer = lieu[m];      
+        short foyer = lieu[m];
+        int maisonEnfant = maison[c] >= 0 ? maison[c] : maison[m];
+        int rangEnfant = (maison[c] >= 0 ? rang[c] : rang[m]) + 1;
+        if (rangEnfant > RANG_MAX) maisonEnfant = -1;
+        int talentParents = (talent[m] + talent[c]) / 2;
         int p = nouvellePlace();
         id[p] = nouveauNumero();
         pere[p] = idPere;
@@ -265,9 +286,14 @@ public class Foule {
         courage[p] = v;
         foi[p] = f;
         lieu[p] = foyer;
+        maison[p] = maisonEnfant;
+        rang[p] = (byte) (maisonEnfant >= 0 ? rangEnfant : 0);
+        int bonus = maisonEnfant >= 0 ? BONUS_NOBLE : 0;
+        talent[p] = (byte) Math.min(100, talentParents / 2 + (int) (Savoir.tirage(id[p], CLE_TALENT) * 50f) + bonus);
         compte[foyer]++;
         naissances++;
     }
+
 
     private void marier() {
         int couples = Math.min(nombreHommes, nombreFemmes);
@@ -296,11 +322,13 @@ public class Foule {
         partantMere[n] = mere[p];
         partantNaissance[n] = naissance[p];
         partantSexe[n] = sexe[p];
-        partantCaractere[n * 5] = loi[p];
-        partantCaractere[n * 5 + 1] = bien[p];
-        partantCaractere[n * 5 + 2] = ambition[p];
-        partantCaractere[n * 5 + 3] = courage[p];
-        partantCaractere[n * 5 + 4] = foi[p];
+        partantCaractere[n * 6] = loi[p];
+        partantCaractere[n * 6 + 1] = bien[p];
+        partantCaractere[n * 6 + 2] = ambition[p];
+        partantCaractere[n * 6 + 3] = courage[p];
+        partantCaractere[n * 6 + 4] = foi[p];
+        partantCaractere[n * 6 + 5] = talent[p];
+
         liberer(p);
         compte[lieu[p]]--;
     }
@@ -313,11 +341,15 @@ public class Foule {
         conjoint[p] = -1;
         naissance[p] = depart.partantNaissance[n];
         sexe[p] = depart.partantSexe[n];
-        loi[p] = depart.partantCaractere[n * 5];
-        bien[p] = depart.partantCaractere[n * 5 + 1];
-        ambition[p] = depart.partantCaractere[n * 5 + 2];
-        courage[p] = depart.partantCaractere[n * 5 + 3];
-        foi[p] = depart.partantCaractere[n * 5 + 4];
+        loi[p] = depart.partantCaractere[n * 6];
+        bien[p] = depart.partantCaractere[n * 6 + 1];
+        ambition[p] = depart.partantCaractere[n * 6 + 2];
+        courage[p] = depart.partantCaractere[n * 6 + 3];
+        foi[p] = depart.partantCaractere[n * 6 + 4];
+        talent[p] = depart.partantCaractere[n * 6 + 5];
+        maison[p] = -1;
+        rang[p] = 0;
+
         compte[0]++;
     }
     
@@ -360,7 +392,8 @@ public class Foule {
         }
     }
 
-    public int choisirChef(int ville, int annee, int ageAdulte) {
+    public int choisirChef(int ville, int annee, int ageAdulte, int exclue) {
+
         int lieuVille = -1;
         for (int l = 1; l < nombreLieux; l++) {
             if (villes[l] == ville) lieuVille = l;
@@ -370,6 +403,7 @@ public class Foule {
         for (int p = 0; p < taille; p++) {
             if (naissance[p] == MORT || lieu[p] != lieuVille) continue;
             if ((annee - naissance[p]) * peuple.rythme < ageAdulte) continue;
+            if (exclue >= 0 && maison[p] == exclue) continue;
             int valeur = ambition[p] + courage[p];
             if (valeur > score) {
                 score = valeur;
@@ -406,6 +440,79 @@ public class Foule {
         return naissance[place];
     }
 
+    public int choisirHeritier(int lignee, int annee, int ageAdulte) {
+        int meilleur = -1;
+        long score = Long.MIN_VALUE;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || maison[p] != lignee) continue;
+            int age = annee - naissance[p];
+            long valeur;
+            if (peuple.succession == Peuple.FORT) {
+                if (age * peuple.rythme < ageAdulte) continue;
+                valeur = ambition[p] + courage[p];
+            } else {
+                valeur = age - rang[p] * 100000L;
+                if (peuple.succession == Peuple.MALE && sexe[p] == HOMME) valeur += 50000L;
+            }
+            if (valeur > score) {
+                score = valeur;
+                meilleur = p;
+            }
+        }
+        return meilleur;
+    }
+
+    public int chercherPretendant(int lignee, int heritier, int annee, int ageAdulte) {
+        int meilleur = -1, score = ambition[heritier];
+        for (int p = 0; p < taille; p++) {
+            if (p == heritier || naissance[p] == MORT || maison[p] != lignee) continue;
+            if ((annee - naissance[p]) * peuple.rythme < ageAdulte) continue;
+            if (ambition[p] > score) {
+                score = ambition[p];
+                meilleur = p;
+            }
+        }
+        return meilleur;
+    }
+
+    public void couronner(int place, int lignee) {
+        long numero = id[place];
+        maison[place] = lignee;
+        rang[place] = 0;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || (pere[p] != numero && mere[p] != numero)) continue;
+            maison[p] = lignee;
+            rang[p] = 1;
+        }
+    }
+
+    public boolean estMineur(int place, int annee, int ageAdulte) {
+        return (annee - naissance[place]) * peuple.rythme < ageAdulte;
+    }
+
+    public boolean estEnfantDe(int place, long numero) {
+        return pere[place] == numero || mere[place] == numero;
+    }
+
+    public int maisonDe(int place) {
+        return maison[place];
+    }
+
+    public int sexeDe(int place) {
+        return sexe[place];
+    }
+
+    public int talentDe(int place) {
+        return talent[place];
+    }
+
+    public int nobles() {
+        int total = 0;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] != MORT && maison[p] >= 0) total++;
+        }
+        return total;
+    }
 
     public boolean estEnVie(int place, long numero) {
         return naissance[place] != MORT && id[place] == numero;
@@ -475,6 +582,36 @@ public class Foule {
 
     public int urbains() {
         return vivants - compte[0];
+    }
+    
+    public void archiver(Archive a) throws java.io.IOException {
+        vivants = a.entier(vivants);
+        taille = a.entier(taille);
+        prochainNumero = a.entier(prochainNumero);
+        nombreLieux = a.entier(nombreLieux);
+        nombreLibres = a.entier(nombreLibres);
+        id = a.longs(id, taille);
+        pere = a.longs(pere, taille);
+        mere = a.longs(mere, taille);
+        conjoint = a.entiers(conjoint, taille);
+        naissance = a.courts(naissance, taille);
+        sexe = a.octets(sexe, taille);
+        loi = a.octets(loi, taille);
+        bien = a.octets(bien, taille);
+        ambition = a.octets(ambition, taille);
+        courage = a.octets(courage, taille);
+        foi = a.octets(foi, taille);
+        lieu = a.courts(lieu, taille);
+        maison = a.entiers(maison, taille);
+        rang = a.octets(rang, taille);
+        talent = a.octets(talent, taille);
+        villes = a.entiers(villes, villes.length);
+        compte = a.entiers(compte, compte.length);
+        tailles = a.entiers(tailles, tailles.length);
+        libres = a.entiers(libres, nombreLibres);
+        meres = java.util.Arrays.copyOf(meres, id.length);
+        hommes = java.util.Arrays.copyOf(hommes, id.length);
+        femmes = java.util.Arrays.copyOf(femmes, id.length);
     }
 
 }
