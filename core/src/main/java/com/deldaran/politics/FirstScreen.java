@@ -25,6 +25,9 @@ import com.deldaran.politics.histoire.Noms;
 import com.deldaran.politics.histoire.Villes;
 import com.deldaran.politics.histoire.Economie;
 import com.deldaran.politics.histoire.Etats;
+import com.deldaran.politics.histoire.Livres;
+import com.deldaran.politics.histoire.Recit;
+import java.util.function.Function;
 
 public class FirstScreen implements Screen {
 
@@ -71,7 +74,7 @@ public class FirstScreen implements Screen {
     private static final String[] NOMS_MODES = { "plaques", "relief", "temperature", "pluie", "biomes", "regions", "nourriture", "population", "villes", "commerce", "etats" };
 
     private final Color couleurTemp = new Color();
-
+    
     @Override
     public void show() {
         camera = new GameCamera();
@@ -424,6 +427,24 @@ public class FirstScreen implements Screen {
             ajouterFait(sectionChronique, rang);
         }
 
+        Livres.Reglages reglagesLivres = p.livres;
+        FenetreDebug.Section sectionSavoir = sectionHistoire.ajouterSection("Savoir");
+        infoHistoire(sectionSavoir, "Oeuvres", () -> String.valueOf(histoire.population.livres.nombre));
+        infoHistoire(sectionSavoir, "Oeuvres survivantes", () -> String.valueOf(histoire.population.livres.vivantes()));
+        infoHistoire(sectionSavoir, "Chansons", () -> String.valueOf(histoire.population.livres.parType[Livres.CHANSON]));
+        sectionSavoir.ajouterBouton("Interroger un paysan", () -> montrerTexte("Temoignage", q -> Recit.interroger(q, 0, MathUtils.random.nextLong())));
+        sectionSavoir.ajouterBouton("Interroger un citadin", () -> montrerTexte("Temoignage", q -> Recit.interroger(q, 1, MathUtils.random.nextLong())));
+        sectionSavoir.ajouterBouton("Interroger un lettre", () -> montrerTexte("Temoignage", q -> Recit.interroger(q, 2, MathUtils.random.nextLong())));
+        sectionSavoir.ajouterBouton("Lire un livre", () -> montrerTexte("Livre", q -> Recit.lireAuHasard(q, true, MathUtils.random.nextLong())));
+        sectionSavoir.ajouterBouton("Ecouter une chanson", () -> montrerTexte("Chanson", q -> Recit.lireAuHasard(q, false, MathUtils.random.nextLong())));
+        sectionSavoir.ajouterBouton("Lire le plus ancien livre", () -> montrerTexte("Livre", Recit::lirePlusAncien));
+        sectionSavoir.ajouterBouton("Voir la vraie chronique", () -> montrerTexte("Chronique", q -> Recit.verite(q, 60)));
+        sectionSavoir.ajouterSlider("Portee des nouvelles", 0.2f, 5f, 0.1f, reglagesLivres.portee, v -> reglagesLivres.portee = v);
+        sectionSavoir.ajouterSlider("Memoire orale", 10f, 200f, 5f, reglagesLivres.demiVie, v -> reglagesLivres.demiVie = v);
+        sectionSavoir.ajouterSlider("Ecriture", 0f, 0.02f, 0.001f, reglagesLivres.ecriture, v -> reglagesLivres.ecriture = v);
+        sectionSavoir.ajouterSlider("Perte des copies", 0f, 0.02f, 0.001f, reglagesLivres.perteCopie, v -> reglagesLivres.perteCopie = v);
+
+
         Economie.Reglages e = p.economie;
         FenetreDebug.Section sectionEconomie = sectionHistoire.ajouterSection("Economie");
         sectionEconomie.ajouterSlider("Rendement paysan", 1f, 3f, 0.05f, e.rendement, v -> e.rendement = v);
@@ -447,6 +468,16 @@ public class FirstScreen implements Screen {
 
     }
     
+    private void montrerTexte(String titre, Function<Population, String> texte) {
+        if (histoire == null) return;
+        Histoire courante = histoire;
+        courante.demander(() -> {
+            String resultat = texte.apply(courante.population);
+            Gdx.app.postRunnable(() -> fenetreDebug.afficherTexte(titre, resultat));
+        });
+    }
+
+
     private void ajouterFait(FenetreDebug.Section section, int rang) {
         infoHistoire(section, String.valueOf(rang + 1), () -> {
             Population p = histoire.population;

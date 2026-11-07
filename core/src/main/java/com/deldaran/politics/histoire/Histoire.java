@@ -1,6 +1,7 @@
 package com.deldaran.politics.histoire;
 
 import com.deldaran.politics.planet.Monde;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Histoire {
     private static final long ATTENTE_PAUSE_MS = 50L;
@@ -12,6 +13,7 @@ public class Histoire {
 
     private volatile boolean arret = false;
     private final Thread fil;
+    private final ConcurrentLinkedQueue<Runnable> demandes = new ConcurrentLinkedQueue<>();
 
     public Histoire(Monde monde, Regions regions, Population.Reglages reglages) {
         population = new Population(monde, regions, reglages);
@@ -22,6 +24,10 @@ public class Histoire {
 
     private void tourner() {
         while (!arret) {
+            Runnable demande;
+            while ((demande = demandes.poll()) != null) {
+                demande.run();
+            }
             if (enPause || population.annee >= dureeMax) {
                 attendre();
                 continue;
@@ -32,12 +38,17 @@ public class Histoire {
         }
     }
 
+
     private void attendre() {
         try {
             Thread.sleep(ATTENTE_PAUSE_MS);
         } catch (InterruptedException e) {
             arret = true;
         }
+    }
+
+    public void demander(Runnable demande) {
+        demandes.add(demande);
     }
 
     public void arreter() {

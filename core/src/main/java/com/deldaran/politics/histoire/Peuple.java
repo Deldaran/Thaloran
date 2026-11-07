@@ -19,6 +19,7 @@ public final class Peuple {
     public float peche = 1f;
     public float loi = 0f;
     public float bien = 0f;
+    public float lettres = 0.5f;
 
     public final float[] attrait = new float[12];
 
@@ -36,6 +37,7 @@ public final class Peuple {
         elfe.peche = 0.3f;
         elfe.loi = 20f;
         elfe.bien = 50f;
+        elfe.lettres = 1f;
         elfe.attrait[Biome.FORET] = 1f;
         elfe.attrait[Biome.JUNGLE] = 0.7f;
         elfe.attrait[Biome.TAIGA] = 0.5f;
@@ -50,6 +52,7 @@ public final class Peuple {
         nain.peche = 0f;
         nain.loi = 50f;
         nain.bien = 10f;
+        nain.lettres = 0.7f;
         nain.attrait[Biome.MONTAGNE] = 1f;
         nain.attrait[Biome.NEIGE] = 0.3f;
         nain.attrait[Biome.TAIGA] = 0.1f;
@@ -79,6 +82,7 @@ public final class Peuple {
         ork.peche = 0.5f;
         ork.loi = -40f;
         ork.bien = -50f;
+        ork.lettres = 0.1f;
         ork.attrait[Biome.TOUNDRA] = 0.5f;
         ork.attrait[Biome.DESERT] = 0.4f;
         ork.attrait[Biome.MONTAGNE] = 0.5f;

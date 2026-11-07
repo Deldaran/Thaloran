@@ -379,6 +379,34 @@ public class Foule {
         return meilleur;
     }
 
+    public int habitantAuHasard(int ville, int annee, int ageAdulte, long tirage) {
+        if (taille == 0) return -1;
+        int lieuVoulu = 0;
+        if (ville >= 0) {
+            lieuVoulu = -1;
+            for (int l = 1; l < nombreLieux; l++) {
+                if (villes[l] == ville) lieuVoulu = l;
+            }
+            if (lieuVoulu < 0) return -1;
+        }
+        int depart = (int) ((tirage >>> 1) % taille);
+        for (int k = 0; k < taille; k++) {
+            int p = (depart + k) % taille;
+            if (naissance[p] == MORT || lieu[p] != lieuVoulu) continue;
+            if ((annee - naissance[p]) * peuple.rythme >= ageAdulte) return p;
+        }
+        return -1;
+    }
+
+    public int villeDe(int place) {
+        return lieu[place] == 0 ? -1 : villes[lieu[place]];
+    }
+
+    public short naissanceDe(int place) {
+        return naissance[place];
+    }
+
+
     public boolean estEnVie(int place, long numero) {
         return naissance[place] != MORT && id[place] == numero;
     }

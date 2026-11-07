@@ -45,7 +45,18 @@ public final class Noms {
         return choisir(DEBUTS[peuple], h) + choisir(FINS_PERSONNES[peuple], h >>> 16);
     }
 
-
+    public static String deformer(String nom, long graine, int degre) {
+        StringBuilder mot = new StringBuilder(nom);
+        long h = graine * 0x9E3779B97F4A7C15L + 1L;
+        for (int k = 0; k < degre && mot.length() > 4; k++) {
+            h = (h ^ (h >>> 31)) * 0xBF58476D1CE4E5B9L;
+            int i = 1 + (int) (((h >>> 8) & 0xFFFFL) % (mot.length() - 1));
+            int voyelle = "aeiouy".indexOf(mot.charAt(i));
+            if (voyelle >= 0) mot.setCharAt(i, "oiaueu".charAt(voyelle));
+            else mot.deleteCharAt(i);
+        }
+        return mot.toString();
+    }
     private static String choisir(String[] liste, long h) {
         return liste[(int) ((h & 0xFFFL) % liste.length)];
     }

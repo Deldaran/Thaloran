@@ -31,6 +31,8 @@ public class FenetreDebug {
     private static final float MARGE = 10f;
     private static final float RETRAIT = 12f;
     private static final float HAUTEUR_TITRE = 26f;
+    private static final float LARGEUR_LECTURE = 540f;
+    private static final float HAUTEUR_LECTURE = 460f;
 
     private final Stage stage;
     private final BitmapFont police;
@@ -45,6 +47,9 @@ public class FenetreDebug {
 
     private final Slider.SliderStyle styleSlider;
     private final Array<Section> sections = new Array<>();
+    private final Window lecture;
+    private final Label texteLecture;
+    private final ScrollPane defilementLecture;
 
     private static class Info {
         final Label label;
@@ -199,6 +204,50 @@ public class FenetreDebug {
         stage.addActor(fenetre);
         fenetre.setPosition(MARGE, stage.getHeight() - MARGE);
         ajuster();
+        
+        lecture = new Window("", styleFenetre);
+        lecture.getTitleLabel().setAlignment(Align.left);
+        lecture.padTop(HAUTEUR_TITRE);
+        lecture.padLeft(MARGE);
+        lecture.padRight(MARGE);
+        lecture.padBottom(MARGE);
+        texteLecture = new Label("", styleLabel);
+        texteLecture.setWrap(true);
+        texteLecture.setAlignment(Align.topLeft);
+        defilementLecture = new ScrollPane(texteLecture);
+        defilementLecture.setScrollingDisabled(true, false);
+        defilementLecture.setFlickScroll(false);
+        defilementLecture.addListener(new InputListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, Actor depuis) {
+                stage.setScrollFocus(defilementLecture);
+            }
+        });
+        lecture.add(defilementLecture).width(LARGEUR_LECTURE).height(HAUTEUR_LECTURE).row();
+        Label fermer = new Label("> Fermer", styleBouton);
+        fermer.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                lecture.setVisible(false);
+            }
+        });
+        lecture.add(fermer).left().padTop(6f);
+        lecture.pack();
+        lecture.setVisible(false);
+        stage.addActor(lecture);
+
+    }
+    
+    public void afficherTexte(String titre, String texte) {
+        lecture.getTitleLabel().setText(titre);
+        texteLecture.setText(texte);
+        defilementLecture.layout();
+        defilementLecture.setScrollY(0f);
+        defilementLecture.updateVisualScroll();
+        lecture.setPosition((stage.getWidth() - lecture.getWidth()) / 2f, (stage.getHeight() - lecture.getHeight()) / 2f);
+        lecture.setVisible(true);
+        lecture.toFront();
+        stage.setScrollFocus(defilementLecture);
     }
 
     private Texture creerTextureBlanche() {

@@ -25,6 +25,7 @@ public class Population {
         public float bonusCote = 0.5f;
         public float exode = 0.05f;
         public final Economie.Reglages economie = new Economie.Reglages();
+        public final Livres.Reglages livres = new Livres.Reglages();
         public final Etats.Reglages etats = new Etats.Reglages();
 
         public final float[] mortalite = new float[110];
@@ -61,6 +62,7 @@ public class Population {
     public final Villes villes = new Villes();
     public final Economie economie;
     public final Etats etats;
+    public final Livres livres;
     public final int[] urbainsPeuple = new int[Peuple.NOMBRE];
 
     public volatile int annee = 0;
@@ -84,6 +86,7 @@ public class Population {
         this.monde = monde;
         economie = new Economie(regions, reglages.economie);
         graine = monde.seed;
+        livres = new Livres(reglages.livres, graine);
         etats = new Etats(regions, reglages.etats, graine);
         villeDe = new int[monde.plaque.length];
         java.util.Arrays.fill(villeDe, -1);
@@ -280,8 +283,9 @@ public class Population {
                 f.publierVilles(villes, a);
             }
         }
-        
+
         etats.avancer(this, a);
+        livres.avancer(this, a);
         compter();
         economie.avancer(this);
         annee = a;
