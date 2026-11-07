@@ -12,12 +12,14 @@ public final class Peuple {
     public final String nom;
     public float rythme = 1f;
     public float mobilite = 1f;
+    public float urbain = 0.2f;
     public int eveil = 0;
     public int berceaux = 2;
     public int fondateurs = 1000;
     public float peche = 1f;
     public float loi = 0f;
     public float bien = 0f;
+
     public final float[] attrait = new float[12];
 
     private Peuple(String nom) {
@@ -28,6 +30,7 @@ public final class Peuple {
         Peuple elfe = new Peuple("Elfes");
         elfe.rythme = 1f / 12f;
         elfe.mobilite = 0.3f;
+        elfe.urbain = 0.3f;
         elfe.berceaux = 2;
         elfe.fondateurs = 1500;
         elfe.peche = 0.3f;
@@ -41,6 +44,7 @@ public final class Peuple {
         Peuple nain = new Peuple("Nains");
         nain.rythme = 1f / 3f;
         nain.mobilite = 0.5f;
+        nain.urbain = 0.7f;
         nain.berceaux = 3;
         nain.fondateurs = 1000;
         nain.peche = 0f;
@@ -68,6 +72,7 @@ public final class Peuple {
         Peuple ork = new Peuple("Orks");
         ork.rythme = 1.5f;
         ork.mobilite = 1.5f;
+        ork.urbain = 0.15f;
         ork.eveil = 1500;
         ork.berceaux = 2;
         ork.fondateurs = 2000;

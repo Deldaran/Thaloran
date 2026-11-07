@@ -4,6 +4,7 @@ import com.badlogic.gdx.utils.IntArray;
 import com.deldaran.politics.planet.Monde;
 import com.deldaran.politics.planet.Terrain;
 import java.util.stream.IntStream;
+import com.deldaran.politics.planet.Sphere;
 
 public class Population {
     public static final class Reglages {
@@ -18,6 +19,14 @@ public class Population {
         public float seuilMigration = 0.7f;
         public float migration = 0.25f;
         public float partMer = 0.03f;
+        public int seuilVille = 3000;
+        public int colons = 100;
+        public float debitVille = 30f;
+        public float bonusCote = 0.5f;
+        public float exode = 0.05f;
+        public final Economie.Reglages economie = new Economie.Reglages();
+        public final Etats.Reglages etats = new Etats.Reglages();
+
         public final float[] mortalite = new float[110];
         public final Peuple[] peuples = Peuple.tous();
 
@@ -49,6 +58,10 @@ public class Population {
     public final int[] debutMer;
     public final int[] mer;
     public final int[][] berceaux = new int[Peuple.NOMBRE][];
+    public final Villes villes = new Villes();
+    public final Economie economie;
+    public final Etats etats;
+    public final int[] urbainsPeuple = new int[Peuple.NOMBRE];
 
     public volatile int annee = 0;
     public volatile int vivants = 0;
@@ -58,12 +71,25 @@ public class Population {
     public int naissances, morts, migrants;
     public double ageMoyenAuDeces = 0;
 
-    private final long graine;
+    public final long graine;
+    private final Monde monde;
+    private final int[] debutCases;
+    private final int[] cases;
+    public final int[] villeDe;
+
 
     public Population(Monde monde, Regions regions, Reglages reglages) {
         this.regions = regions;
         this.reglages = reglages;
+        this.monde = monde;
+        economie = new Economie(regions, reglages.economie);
         graine = monde.seed;
+        etats = new Etats(regions, reglages.etats, graine);
+        villeDe = new int[monde.plaque.length];
+        java.util.Arrays.fill(villeDe, -1);
+        debutCases = new int[regions.nombre + 1];
+        cases = new int[monde.plaque.length];
+        rangerCases();
         int n = regions.nombre;
         foules = new Foule[Peuple.NOMBRE][n];
         capacite = new float[Peuple.NOMBRE][n];
@@ -94,6 +120,45 @@ public class Population {
         eveiller(0);
         compter();
     }
+    private void rangerCases() {
+        for (int c = 0; c < cases.length; c++) {
+            debutCases[regions.regionDe[c] + 1]++;
+        }
+        for (int r = 0; r < regions.nombre; r++) {
+            debutCases[r + 1] += debutCases[r];
+        }
+        int[] position = java.util.Arrays.copyOf(debutCases, regions.nombre);
+        for (int c = 0; c < cases.length; c++) {
+            cases[position[regions.regionDe[c]]++] = c;
+        }
+    }
+
+    private float qualiteSite(int c, Peuple peuple) {
+        float qualite = peuple.attrait[monde.biome[c]] + Math.min(1f, monde.debit[c] / reglages.debitVille);
+        for (int k = 0; k < Sphere.NOMBRE_VOISINS; k++) {
+            if (monde.estSousLEau(monde.sphere.voisin(c, k))) return qualite + reglages.bonusCote * peuple.peche;
+        }
+        return qualite;
+    }
+
+    private void fonderVille(Foule f, int annee) {
+        int meilleur = -1;
+        float qualite = -1f;
+        for (int k = debutCases[f.region]; k < debutCases[f.region + 1]; k++) {
+            int c = cases[k];
+            if (villeDe[c] >= 0) continue;
+            float q = qualiteSite(c, f.peuple);
+            if (q > qualite) {
+                qualite = q;
+                meilleur = c;
+            }
+        }
+        if (meilleur < 0) return;
+        int ville = villes.ajouter(meilleur, f.region, f.indicePeuple, annee);
+        villeDe[meilleur] = ville;
+        f.fonderVille(ville, reglages.colons);
+    }
+
 
     private void relier(IntArray listeTerre, IntArray listeMer) {
         IntArray vus = new IntArray();
@@ -189,7 +254,7 @@ public class Population {
             }
             habitants[r] = total;
             for (int q = 0; q < Peuple.NOMBRE; q++) {
-                pression[q][r] = Math.max(saturation, total / Math.max(1f, capacite[q][r]));
+            pression[q][r] = Math.max(saturation, total / Math.max(1f, capacite[q][r] + economie.importe[r] - economie.exporte[r]));
             }
         }
         IntStream.range(0, Peuple.NOMBRE * n).parallel().forEach(k -> {
@@ -209,9 +274,19 @@ public class Population {
                 migrants += f.nombrePartants;
                 f.nombrePartants = 0;
             }
+            for (Foule f : foules[q]) {
+                if (f == null) continue;
+                if (f.vivants > 0 && f.doitFonder(reglages.seuilVille)) fonderVille(f, a);
+                f.publierVilles(villes, a);
+            }
         }
+        
+        etats.avancer(this, a);
         compter();
+        economie.avancer(this);
         annee = a;
+
+
     }
 
     private void compter() {
@@ -221,11 +296,10 @@ public class Population {
         morts = 0;
         long ages = 0;
         for (int q = 0; q < Peuple.NOMBRE; q++) {
-            int vivantsDuPeuple = 0, regionsDuPeuple = 0, mortsDuPeuple = 0;
+            int vivantsDuPeuple = 0, regionsDuPeuple = 0, mortsDuPeuple = 0, urbainsDuPeuple = 0;
             long agesDuPeuple = 0;
             for (Foule f : foules[q]) {
                 if (f == null) continue;
-                vivantsDuPeuple += f.vivants;
                 if (f.vivants > 0) {
                     regionsDuPeuple++;
                     habitee[f.region] = true;
@@ -233,12 +307,17 @@ public class Population {
                 naissances += f.naissances;
                 mortsDuPeuple += f.morts;
                 agesDuPeuple += f.sommeAgesAuDeces;
+                urbainsDuPeuple += f.urbains();
+                vivantsDuPeuple += f.vivants;
+
                 f.naissances = 0;
                 f.morts = 0;
                 f.sommeAgesAuDeces = 0;
             }
-            vivantsPeuple[q] = vivantsDuPeuple;
+            urbainsPeuple[q] = urbainsDuPeuple;
             regionsPeuple[q] = regionsDuPeuple;
+            vivantsPeuple[q] = vivantsDuPeuple;
+
             if (mortsDuPeuple > 0) ageAuDeces[q] = (double) agesDuPeuple / mortsDuPeuple;
             total += vivantsDuPeuple;
             morts += mortsDuPeuple;

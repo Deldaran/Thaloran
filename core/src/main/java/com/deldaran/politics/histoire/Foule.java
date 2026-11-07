@@ -31,6 +31,12 @@ public class Foule {
     private byte[] ambition = new byte[TAILLE_DEPART];
     private byte[] courage = new byte[TAILLE_DEPART];
     private byte[] foi = new byte[TAILLE_DEPART];
+    private short[] lieu = new short[TAILLE_DEPART];
+
+    private int nombreLieux = 1;
+    private int[] villes = new int[4];
+    private int[] compte = new int[4];
+    private int[] tailles = new int[4];
 
     private int[] libres = new int[TAILLE_DEPART];
     private int nombreLibres = 0;
@@ -72,6 +78,7 @@ public class Foule {
         ambition = java.util.Arrays.copyOf(ambition, n);
         courage = java.util.Arrays.copyOf(courage, n);
         foi = java.util.Arrays.copyOf(foi, n);
+        lieu = java.util.Arrays.copyOf(lieu, n);
         libres = java.util.Arrays.copyOf(libres, n);
         meres = java.util.Arrays.copyOf(meres, n);
         hommes = java.util.Arrays.copyOf(hommes, n);
@@ -98,6 +105,8 @@ public class Foule {
             place = taille++;
         }
         vivants++;
+        lieu[place] = 0;
+
         return place;
     }
 
@@ -154,7 +163,7 @@ public class Foule {
             ambition[p] = hasardCaractere(0f);
             courage[p] = hasardCaractere(0f);
             foi[p] = hasardCaractere(0f);
-
+            compte[0]++;
         }
     }
 
@@ -172,6 +181,19 @@ public class Foule {
         sommeAgesAuDeces = 0;
         nombreMeres = nombreHommes = nombreFemmes = 0;
         nombrePartants = 0;
+        int[] echange = tailles;
+        tailles = compte;
+        compte = echange;
+        java.util.Arrays.fill(compte, 0);
+        int urbains = 0;
+        for (int l = 1; l < nombreLieux; l++) {
+            urbains += tailles[l];
+        }
+        
+        int habitantsRegion = Math.max(1, monde.habitants[region]);
+        float partUrbaine = peuple.urbain + monde.economie.importe[region] / habitantsRegion + monde.economie.partCommerce(region, habitantsRegion);
+        float exode = urbains > 0 && urbains < partUrbaine * vivants ? rythme * r.exode : 0f;
+
 
         for (int p = 0; p < taille; p++) {
             short ne = naissance[p];
@@ -187,15 +209,19 @@ public class Foule {
                 liberer(p);
                 continue;
             }
+            compte[lieu[p]]++;
             if (age < r.ageAdulte) continue;
             if (conjoint[p] >= 0) {
                 if (sexe[p] == FEMME && age <= r.ageFertileMax && alea() < natalite) meres[nombreMeres++] = p;
             } else if (age <= AGE_MIGRATION_MAX && alea() < migration) {
                 partir(p, monde);
-            } else if (sexe[p] == HOMME) {
-                hommes[nombreHommes++] = p;
-            } else if (age <= r.ageFertileMax) {
-                femmes[nombreFemmes++] = p;
+            } else {
+                if (lieu[p] == 0 && alea() < exode) installerEnVille(p, urbains);
+                if (sexe[p] == HOMME) {
+                    hommes[nombreHommes++] = p;
+                } else if (age <= r.ageFertileMax) {
+                    femmes[nombreFemmes++] = p;
+                }
             }
         }
 
@@ -208,10 +234,24 @@ public class Foule {
         marier();
     }
 
+    private void installerEnVille(int p, int urbains) {
+        int tirage = entier(urbains);
+        for (int l = 1; l < nombreLieux; l++) {
+            tirage -= tailles[l];
+            if (tirage < 0) {
+                compte[0]--;
+                compte[l]++;
+                lieu[p] = (short) l;
+                return;
+            }
+        }
+    }
+
     private void naitre(int m, int c, int annee) {
         long idMere = id[m], idPere = id[c];
         byte l = heriter(loi[m], loi[c]), b = heriter(bien[m], bien[c]);
         byte a = heriter(ambition[m], ambition[c]), v = heriter(courage[m], courage[c]), f = heriter(foi[m], foi[c]);
+        short foyer = lieu[m];      
         int p = nouvellePlace();
         id[p] = nouveauNumero();
         pere[p] = idPere;
@@ -224,6 +264,8 @@ public class Foule {
         ambition[p] = a;
         courage[p] = v;
         foi[p] = f;
+        lieu[p] = foyer;
+        compte[foyer]++;
         naissances++;
     }
 
@@ -236,6 +278,10 @@ public class Foule {
             int h = hommes[k];
             conjoint[h] = f;
             conjoint[f] = h;
+            compte[lieu[f]]--;
+            compte[lieu[h]]++;
+            lieu[f] = lieu[h];
+
         }
     }
 
@@ -256,6 +302,7 @@ public class Foule {
         partantCaractere[n * 5 + 3] = courage[p];
         partantCaractere[n * 5 + 4] = foi[p];
         liberer(p);
+        compte[lieu[p]]--;
     }
 
     public void accueillir(Foule depart, int n) {
@@ -271,5 +318,135 @@ public class Foule {
         ambition[p] = depart.partantCaractere[n * 5 + 2];
         courage[p] = depart.partantCaractere[n * 5 + 3];
         foi[p] = depart.partantCaractere[n * 5 + 4];
+        compte[0]++;
     }
+    
+    public boolean doitFonder(int seuil) {
+        int actives = 0;
+        for (int l = 1; l < nombreLieux; l++) {
+            if (compte[l] > 0) actives++;
+        }
+        return compte[0] > seuil * (1 + actives);
+    }
+
+    public void fonderVille(int ville, int colons) {
+        if (nombreLieux == villes.length) {
+            int n = villes.length * 2;
+            villes = java.util.Arrays.copyOf(villes, n);
+            compte = java.util.Arrays.copyOf(compte, n);
+            tailles = java.util.Arrays.copyOf(tailles, n);
+        }
+        int l = nombreLieux++;
+        villes[l] = ville;
+        int restants = colons;
+        for (int p = 0; p < taille && restants > 0; p++) {
+            if (naissance[p] == MORT || lieu[p] != 0) continue;
+            restants -= deplacer(p, l);
+            int c = conjoint[p];
+            if (c >= 0) restants -= deplacer(c, l);
+        }
+    }
+
+    private int deplacer(int p, int l) {
+        compte[lieu[p]]--;
+        compte[l]++;
+        lieu[p] = (short) l;
+        return 1;
+    }
+
+    public void publierVilles(Villes liste, int annee) {
+        for (int l = 1; l < nombreLieux; l++) {
+            liste.actualiser(villes[l], compte[l], annee);
+        }
+    }
+
+    public int choisirChef(int ville, int annee, int ageAdulte) {
+        int lieuVille = -1;
+        for (int l = 1; l < nombreLieux; l++) {
+            if (villes[l] == ville) lieuVille = l;
+        }
+        if (lieuVille < 0) return -1;
+        int meilleur = -1, score = Integer.MIN_VALUE;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || lieu[p] != lieuVille) continue;
+            if ((annee - naissance[p]) * peuple.rythme < ageAdulte) continue;
+            int valeur = ambition[p] + courage[p];
+            if (valeur > score) {
+                score = valeur;
+                meilleur = p;
+            }
+        }
+        return meilleur;
+    }
+
+    public boolean estEnVie(int place, long numero) {
+        return naissance[place] != MORT && id[place] == numero;
+    }
+
+    public long idDe(int place) {
+        return id[place];
+    }
+
+    public byte ambitionDe(int place) {
+        return ambition[place];
+    }
+
+    public byte courageDe(int place) {
+        return courage[place];
+    }
+
+    public byte loiDe(int place) {
+        return loi[place];
+    }
+
+    public byte bienDe(int place) {
+        return bien[place];
+    }
+
+    private void mourir(int p, int annee) {
+        int c = conjoint[p];
+        if (c >= 0) conjoint[c] = -1;
+        morts++;
+        sommeAgesAuDeces += annee - naissance[p];
+        compte[lieu[p]]--;
+        liberer(p);
+    }
+
+    public void executer(int place, int annee) {
+        if (naissance[place] != MORT) mourir(place, annee);
+    }
+
+    public int tuerSoldats(int nombre, int annee, int ageAdulte) {
+        if (taille == 0 || nombre <= 0) return 0;
+        int tues = 0;
+        int depart = entier(taille);
+        for (int k = 0; k < taille && tues < nombre; k++) {
+            int p = (depart + k) % taille;
+            if (naissance[p] == MORT || sexe[p] != HOMME) continue;
+            if ((annee - naissance[p]) * peuple.rythme < ageAdulte) continue;
+            mourir(p, annee);
+            tues++;
+        }
+        return tues;
+    }
+
+    public int saccager(int ville, float part, int annee) {
+        int lieuVille = -1;
+        for (int l = 1; l < nombreLieux; l++) {
+            if (villes[l] == ville) lieuVille = l;
+        }
+        if (lieuVille < 0) return 0;
+        int tues = 0;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || lieu[p] != lieuVille || alea() >= part) continue;
+            mourir(p, annee);
+            tues++;
+        }
+        return tues;
+    }
+
+    public int urbains() {
+        return vivants - compte[0];
+    }
+
 }

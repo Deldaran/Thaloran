@@ -21,7 +21,10 @@ import java.util.function.Supplier;
 import com.deldaran.politics.histoire.Histoire;
 import com.deldaran.politics.histoire.Population;
 import com.deldaran.politics.histoire.Peuple;
-
+import com.deldaran.politics.histoire.Noms;
+import com.deldaran.politics.histoire.Villes;
+import com.deldaran.politics.histoire.Economie;
+import com.deldaran.politics.histoire.Etats;
 
 public class FirstScreen implements Screen {
 
@@ -65,7 +68,7 @@ public class FirstScreen implements Screen {
     };
 
 
-    private static final String[] NOMS_MODES = { "plaques", "relief", "temperature", "pluie", "biomes", "regions", "nourriture", "population" };
+    private static final String[] NOMS_MODES = { "plaques", "relief", "temperature", "pluie", "biomes", "regions", "nourriture", "population", "villes", "commerce", "etats" };
 
     private final Color couleurTemp = new Color();
 
@@ -195,10 +198,65 @@ public class FirstScreen implements Screen {
             case 5: couleurRegion(i); break;
             case 6: couleurNourriture(i); break;
             case 7: couleurPopulation(i); break;
+            case 8: couleurVilles(i); break;
+            case 9: couleurCommerce(i); break;
+            case 10: couleurEtat(i); break;
 
             default: Palette.biome(monde.biome[i], couleurTemp); ajouterEau(i); break;
 
         }
+    }
+
+    private void couleurEtat(int i) {
+        if (histoire == null) {
+            couleurTemp.set(Color.DARK_GRAY);
+            return;
+        }
+        Population p = histoire.population;
+        int r = p.regions.regionDe[i];
+        if (!p.regions.estTerre[r]) {
+            couleurTemp.set(0.06f, 0.12f, 0.24f, 1f);
+            return;
+        }
+        int e = p.etats.regionEtat[r];
+        if (e < 0) {
+            couleurTemp.set(0.29f, 0.29f, 0.26f, 1f);
+            return;
+        }
+        couleurTemp.fromHsv((e * 47) % 360, 0.65f, 0.9f);
+        couleurTemp.a = 1f;
+    }
+
+
+    private void couleurCommerce(int i) {
+        if (histoire == null) {
+            couleurTemp.set(Color.DARK_GRAY);
+            return;
+        }
+        Population p = histoire.population;
+        int r = p.regions.regionDe[i];
+        float t = Math.min(1f, (float) Math.log10(1f + p.economie.trafic[r]) / 6f);
+        if (p.regions.estTerre[r]) {
+            couleurTemp.set(0.16f + 0.84f * t, 0.14f + 0.66f * t, 0.1f, 1f);
+        } else {
+            couleurTemp.set(0.04f, 0.08f + 0.5f * t, 0.18f + 0.8f * t, 1f);
+        }
+    }
+
+    private void couleurVilles(int i) {
+        couleurPopulation(i);
+        couleurTemp.mul(0.4f, 0.4f, 0.4f, 1f);
+        if (histoire == null) return;
+        Population p = histoire.population;
+        Villes villes = p.villes;
+        int v = p.villeDe[i];
+        if (v < 0 || v >= villes.nombre) return;
+        if (!villes.estVivante(v)) {
+            couleurTemp.set(0.55f, 0.5f, 0.45f, 1f);
+            return;
+        }
+        float force = 0.3f + 0.7f * Math.min(1f, villes.habitants[v] / 3000f);
+        couleurTemp.set(COULEURS_PEUPLES[villes.peuple[v]]).lerp(Color.WHITE, force);
     }
 
     private void couleurPopulation(int i) {
@@ -341,10 +399,79 @@ public class FirstScreen implements Screen {
         migrations.ajouterSlider("Seuil", 0.1f, 1.5f, 0.05f, p.seuilMigration, v -> p.seuilMigration = v);
         migrations.ajouterSlider("Force", 0f, 1f, 0.05f, p.migration, v -> p.migration = v);
         migrations.ajouterSlider("Part par la mer", 0f, 0.3f, 0.01f, p.partMer, v -> p.partMer = v);
+        FenetreDebug.Section sectionVilles = sectionHistoire.ajouterSection("Villes");
+        infoHistoire(sectionVilles, "Villes vivantes", () -> String.valueOf(histoire.population.villes.nombre - histoire.population.villes.ruines));
+        infoHistoire(sectionVilles, "Ruines", () -> String.valueOf(histoire.population.villes.ruines));
+        sectionVilles.ajouterSlider("Seuil de fondation", 500f, 6000f, 100f, p.seuilVille, v -> p.seuilVille = v.intValue());
+        sectionVilles.ajouterSlider("Colons", 20f, 500f, 10f, p.colons, v -> p.colons = v.intValue());
+        sectionVilles.ajouterSlider("Exode rural", 0f, 0.3f, 0.01f, p.exode, v -> p.exode = v);
+        FenetreDebug.Section grandes = sectionVilles.ajouterSection("Plus grandes");
+
+        Etats.Reglages reglagesEtats = p.etats;
+        FenetreDebug.Section sectionEtats = sectionHistoire.ajouterSection("Etats");
+        infoHistoire(sectionEtats, "Etats vivants", () -> String.valueOf(histoire.population.etats.vivants()));
+        infoHistoire(sectionEtats, "Chutes", () -> String.valueOf(histoire.population.etats.chutes));
+        infoHistoire(sectionEtats, "Guerres", () -> String.valueOf(histoire.population.etats.guerres));
+        infoHistoire(sectionEtats, "Revolutions", () -> String.valueOf(histoire.population.etats.revolutions));
+        infoHistoire(sectionEtats, "Morts au combat", () -> String.valueOf(histoire.population.etats.mortsAuCombat));
+        infoHistoire(sectionEtats, "Morts des sacs", () -> String.valueOf(histoire.population.etats.mortsDesSacs));
+        sectionEtats.ajouterSlider("Envie de guerre", 0f, 0.1f, 0.005f, reglagesEtats.envieGuerre, v -> reglagesEtats.envieGuerre = v);
+        sectionEtats.ajouterSlider("Siege", 1f, 4f, 0.1f, reglagesEtats.siege, v -> reglagesEtats.siege = v);
+        sectionEtats.ajouterSlider("Part de l'armee", 0.005f, 0.1f, 0.005f, reglagesEtats.partArmee, v -> reglagesEtats.partArmee = v);
+        sectionEtats.ajouterSlider("Seuil de revolution", 0f, 50f, 1f, reglagesEtats.seuilRevolution, v -> reglagesEtats.seuilRevolution = v);
+        FenetreDebug.Section sectionChronique = sectionEtats.ajouterSection("Chronique");
+        for (int rang = 0; rang < 6; rang++) {
+            ajouterFait(sectionChronique, rang);
+        }
+
+        Economie.Reglages e = p.economie;
+        FenetreDebug.Section sectionEconomie = sectionHistoire.ajouterSection("Economie");
+        sectionEconomie.ajouterSlider("Rendement paysan", 1f, 3f, 0.05f, e.rendement, v -> e.rendement = v);
+        sectionEconomie.ajouterSlider("Cout terre", 0.01f, 0.3f, 0.01f, e.coutTerre, v -> e.coutTerre = v);
+        sectionEconomie.ajouterSlider("Cout mer", 0.01f, 0.3f, 0.01f, e.coutMer, v -> e.coutMer = v);
+        sectionEconomie.ajouterSlider("Emplois du commerce", 0f, 3f, 0.1f, e.emplois, v -> e.emplois = v);
+        sectionEconomie.ajouterSlider("Part urbaine du commerce", 0f, 0.9f, 0.05f, e.partCommerce, v -> e.partCommerce = v);
+        
+        for (int g = 0; g < Economie.NOMBRE; g++) {
+            ajouterMarchandise(sectionEconomie, g);
+        }
+
+
+        for (int rang = 0; rang < 5; rang++) {
+            ajouterGrandeVille(grandes, rang);
+        }
+
         for (int q = 0; q < Peuple.NOMBRE; q++) {
             ajouterPeuple(sectionHistoire, q);
         }
 
+    }
+    
+    private void ajouterFait(FenetreDebug.Section section, int rang) {
+        infoHistoire(section, String.valueOf(rang + 1), () -> {
+            Population p = histoire.population;
+            int i = p.etats.chronique.recent(rang);
+            return i < 0 ? "-" : p.etats.chronique.texte(p, i);
+        });
+    }
+
+
+    private void ajouterMarchandise(FenetreDebug.Section parent, int g) {
+        FenetreDebug.Section section = parent.ajouterSection(Economie.NOMS[g]);
+        infoHistoire(section, "Production", () -> String.format("%.0f", histoire.population.economie.total(histoire.population.economie.production, g)));
+        infoHistoire(section, "Besoin", () -> String.format("%.0f", histoire.population.economie.total(histoire.population.economie.besoin, g)));
+        infoHistoire(section, "Stock", () -> String.format("%.0f", histoire.population.economie.stockTotal(g)));
+        infoHistoire(section, "Prix moyen", () -> String.format("%.2f", histoire.population.economie.prixMoyen(g)));
+    }
+
+
+    private void ajouterGrandeVille(FenetreDebug.Section section, int rang) {
+        infoHistoire(section, String.valueOf(rang + 1), () -> {
+            Population p = histoire.population;
+            int v = p.villes.plusGrandes(rang + 1)[rang];
+            if (v < 0) return "-";
+            return Noms.ville(p.villes.peuple[v], p.graine, v) + " " + p.villes.habitants[v];
+        });
     }
 
     private void ajouterPeuple(FenetreDebug.Section parent, int q) {
@@ -352,8 +479,10 @@ public class FirstScreen implements Screen {
         FenetreDebug.Section section = parent.ajouterSection(peuple.nom);
         infoHistoire(section, "Vivants", () -> String.valueOf(histoire.population.vivantsPeuple[q]));
         infoHistoire(section, "Regions", () -> String.valueOf(histoire.population.regionsPeuple[q]));
+        infoHistoire(section, "Urbains", () -> String.valueOf(histoire.population.urbainsPeuple[q]));
         infoHistoire(section, "Age au deces", () -> String.format("%.0f ans", histoire.population.ageAuDeces[q]));
         section.ajouterSlider("Mobilite", 0f, 2f, 0.1f, peuple.mobilite, v -> peuple.mobilite = v);
+        section.ajouterSlider("Part urbaine", 0f, 1f, 0.05f, peuple.urbain, v -> peuple.urbain = v);        
         reglerDepart(section, "Rythme de vie", 0.05f, 2f, 0.05f, peuple.rythme, v -> peuple.rythme = v);
         reglerDepart(section, "Annee d'eveil", 0f, 4000f, 100f, peuple.eveil, v -> peuple.eveil = v.intValue());
         reglerDepart(section, "Berceaux", 1f, 6f, 1f, peuple.berceaux, v -> peuple.berceaux = v.intValue());
