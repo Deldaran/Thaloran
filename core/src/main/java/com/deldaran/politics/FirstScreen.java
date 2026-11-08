@@ -29,6 +29,9 @@ import com.deldaran.politics.histoire.Etats;
 import com.deldaran.politics.histoire.Livres;
 import com.deldaran.politics.histoire.Recit;
 import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class FirstScreen implements Screen {
 
@@ -60,6 +63,12 @@ public class FirstScreen implements Screen {
     
     RenduTuiles tuiles;
     Vegetation vegetation;
+    Terrain terrain;
+    Assembleur assembleur;
+    final List<Personnage> personnages = new ArrayList<>();
+    private final Terrain.Point point = new Terrain.Point();
+    private final Random hasard = new Random();
+    private float[] errance = new float[0];
 
     private static final long GRAINE = 42L;
 
@@ -113,6 +122,9 @@ public class FirstScreen implements Screen {
         cameraController.update(delta);
         if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
             modeAffichage = (modeAffichage + 1) % NOMS_MODES.length;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && terrain != null) {
+            peupler();
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             enPause = !enPause;
@@ -184,13 +196,42 @@ public class FirstScreen implements Screen {
 
     private void dessinerTuiles() {
         if (tuiles == null) {
-            Terrain terrain = new Terrain(monde, simulation.climat.hauteurPlaines);
+            terrain = new Terrain(monde, simulation.climat.hauteurPlaines);
             tuiles = new RenduTuiles(terrain);
             vegetation = new Vegetation(terrain);
+            assembleur = new Assembleur();
         }
+        errer(Gdx.graphics.getDeltaTime());
         tuiles.dessiner(camera, true);
-        vegetation.dessiner(camera, tuiles);
+        vegetation.dessiner(camera, tuiles, personnages, assembleur);
 
+    }
+
+    void peupler() {
+        double cosLat = Math.cos(camera.latitude);
+        double x0 = cosLat * Math.cos(camera.longitude), y0 = cosLat * Math.sin(camera.longitude), z0 = Math.sin(camera.latitude);
+        for (int k = 0; k < 30; k++) {
+            Personnage p = new Personnage(assembleur.tirer(hasard.nextLong(), hasard.nextInt(Peuple.NOMBRE)), x0, y0, z0);
+            terrain.echantillonner(x0, y0, z0, 11, point);
+            p.altitude = point.altitude;
+            p.deplacer((hasard.nextDouble() - 0.5) * 30.0, (hasard.nextDouble() - 0.5) * 20.0, 0f, terrain, point);
+            p.enMarche = false;
+            personnages.add(p);
+        }
+        errance = new float[personnages.size() * 3];
+    }
+
+    private void errer(float delta) {
+        for (int k = 0; k < personnages.size(); k++) {
+            errance[k * 3] -= delta;
+            if (errance[k * 3] <= 0f) {
+                errance[k * 3] = 1f + hasard.nextFloat() * 3f;
+                int choix = hasard.nextInt(6);
+                errance[k * 3 + 1] = choix == 0 ? 1f : choix == 1 ? -1f : 0f;
+                errance[k * 3 + 2] = choix == 2 ? 1f : choix == 3 ? -1f : 0f;
+            }
+            personnages.get(k).deplacer(errance[k * 3 + 1] * 1.4 * delta, errance[k * 3 + 2] * 1.4 * delta, delta, terrain, point);
+        }
     }
 
     private void preparerFond() {
@@ -641,6 +682,7 @@ public class FirstScreen implements Screen {
         rendu.dispose();
         if (tuiles != null) tuiles.dispose();
         if (vegetation != null) vegetation.dispose();
+        if (assembleur != null) assembleur.dispose();
         fenetreDebug.dispose();
         arreterHistoire();
     }

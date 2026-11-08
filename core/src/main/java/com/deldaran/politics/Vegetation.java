@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +27,7 @@ public class Vegetation {
     private static final int CASE_L = 48;
     private static final int CASE_H = 72;
     private static final int ANCRE = 4;
+    private static final int ANCRE_PERSONNAGE = 2;
     private static final int VARIANTES = 4;
     private static final int PAS_ECRAN = 48;
     private static final int PARCELLES_MAX = 600;
@@ -153,7 +155,7 @@ public class Vegetation {
         return (melanger(h + k * 0x9E3779B97F4A7C15L) >>> 11) * 0x1.0p-53;
     }
 
-    public void dessiner(GameCamera camera, RenduTuiles tuiles) {
+    public void dessiner(GameCamera camera, RenduTuiles tuiles, List<Personnage> personnages, Assembleur assembleur) {
         double rayon = camera.rayonPixels;
         double metresEcran = RAYON_METRES / rayon;
         if (metresEcran > METRES_ECRAN_MAX) return;
@@ -180,16 +182,43 @@ public class Vegetation {
                 n++;
             }
         }
+        for (int k = 0; k < personnages.size(); k++) {
+            Personnage p = personnages.get(k);
+            double x = p.position[0], y = p.position[1], z = p.position[2];
+            if (x * centre[0] + y * centre[1] + z * centre[2] <= 0.0) continue;
+            float sx = (float) (largeur / 2.0 + (x * est[0] + y * est[1] + z * est[2]) * rayon);
+            float sy = (float) (hauteur / 2.0 + (x * nord[0] + y * nord[1] + z * nord[2]) * rayon);
+            if (sx < -200 || sx > largeur + 200 || sy < -200 || sy > hauteur + 200) continue;
+            if (n == xs.length) agrandirTableaux();
+            xs[n] = sx;
+            ys[n] = sy + tuiles.decalage(p.altitude);
+            sortes[n] = -1 - k;
+            ordre[n] = ((long) (100000 - (int) sy) << 32) | n;
+            n++;
+        }
         Arrays.sort(ordre, 0, n);
 
         float e = (float) (METRES_SPRITE / metresEcran);
         pinceau.getProjectionMatrix().setToOrtho2D(0f, 0f, largeur, hauteur);
         pinceau.begin();
-        agrandir.setUniformf("u_taille", planche.getWidth(), planche.getHeight());
         agrandir.setUniformf("u_echelle", e);
+        Texture courante = null;
         for (int k = 0; k < n; k++) {
             int i = (int) ordre[k];
             int sorte = sortes[i];
+            Texture texture = sorte < 0 ? assembleur.texture(personnages.get(-1 - sorte).apparence) : planche;
+            if (texture != courante) {
+                pinceau.flush();
+                agrandir.setUniformf("u_taille", texture.getWidth(), texture.getHeight());
+                courante = texture;
+            }
+            if (sorte < 0) {
+                Personnage p = personnages.get(-1 - sorte);
+                float x = Math.round(xs[i] - Assembleur.L / 2f * e);
+                float y = Math.round(ys[i] - ANCRE_PERSONNAGE * e);
+                pinceau.draw(texture, x, y, Assembleur.L * e, Assembleur.H * e, p.image() * Assembleur.L, 0, Assembleur.L, Assembleur.H, p.miroir(), false);
+                continue;
+            }
             int cx = (sorte % VARIANTES) * CASE_L, cy = (sorte / VARIANTES) * CASE_H;
             float x = Math.round(xs[i] - CASE_L / 2f * e);
             float y = Math.round(ys[i] - ANCRE * e);
