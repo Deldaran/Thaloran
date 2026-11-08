@@ -2,13 +2,16 @@ package com.deldaran.politics;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.FloatTextureData;
 import com.deldaran.politics.planet.Cube;
+import com.deldaran.politics.planet.Terrain;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Tuile {
     public static final int COTE = 256;
     public static final int SEGMENTS = 16;
     public static final int POINTS = SEGMENTS + 1;
+    public static final double COTE_FACE_METRES = Math.PI / 2.0 * Terrain.RAYON_KM * 1000.0;
 
     public static final int VIDE = 0;
     public static final int EN_COURS = 1;
@@ -20,8 +23,10 @@ public class Tuile {
     public final double[] grille = new double[POINTS * POINTS * 3];
     public final AtomicInteger etat = new AtomicInteger(VIDE);
 
-    public Texture texture;
-    public volatile Pixmap image;
+    public Texture donnees;
+    public Texture couverture;
+    public volatile FloatTextureData donneesPretes;
+    public volatile Pixmap couverturePrete;
     public long dernierUsage;
 
     public Tuile(int face, int niveau, int x, int y, boolean biomes) {
@@ -44,14 +49,21 @@ public class Tuile {
         return 2.0 * (position + fraction) / (1 << niveau) - 1.0;
     }
 
+    public static double metresParTexel(int niveau) {
+        return COTE_FACE_METRES / (1 << niveau) / COTE;
+    }
+
     public static long cle(int face, int niveau, int x, int y, boolean biomes) {
         return ((long) (biomes ? 1 : 0) << 52) | ((long) face << 49) | ((long) niveau << 44) | ((long) x << 22) | y;
     }
 
     public void liberer() {
-        if (texture != null) texture.dispose();
-        if (image != null) image.dispose();
-        texture = null;
-        image = null;
+        if (donnees != null) donnees.dispose();
+        if (couverture != null) couverture.dispose();
+        if (couverturePrete != null) couverturePrete.dispose();
+        donnees = null;
+        couverture = null;
+        donneesPretes = null;
+        couverturePrete = null;
     }
 }

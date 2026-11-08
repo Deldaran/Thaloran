@@ -30,7 +30,7 @@ public class Terrain {
 
     public final float hauteurPlaines;
 
-    private final int graine;
+    public final int graine;
     private final float[][] altitude = new float[Cube.FACES][LARGEUR * LARGEUR];
     private final float[][] temperature = new float[Cube.FACES][LARGEUR * LARGEUR];
     private final float[][] pluie = new float[Cube.FACES][LARGEUR * LARGEUR];
@@ -180,6 +180,7 @@ public class Terrain {
         float ecart = sousLEau ? 0f : Math.max(point.altitude, 0f) - Math.max(point.base, 0f);
         point.temperature += VARIATION_TEMPERATURE * variation - REFROIDISSEMENT * ecart;
         float pluieLocale = point.pluie * (1f + VARIATION_PLUIE * variation);
+        point.pluie = pluieLocale;
         return Biome.choisir(point.temperature, pluieLocale, sousLEau, point.altitude - hauteurPlaines);
     }
 
@@ -190,6 +191,7 @@ public class Terrain {
         public float pluie;
         public boolean riviere;
         public boolean lac;
+        public float courantX, courantY, courantZ;
 
     }
 }

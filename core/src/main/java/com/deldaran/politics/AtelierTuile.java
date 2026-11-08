@@ -1,110 +1,88 @@
 package com.deldaran.politics;
 
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.graphics.glutils.FloatTextureData;
 import com.deldaran.politics.planet.Biome;
+import com.deldaran.politics.planet.Bruit;
 import com.deldaran.politics.planet.Cube;
 import com.deldaran.politics.planet.Terrain;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 
 public class AtelierTuile {
-    private static final int LARGEUR = Tuile.COTE + 2;
-    private static final float FORCE_OMBRE = 5f * (float) Terrain.ECHELLE;
-    private static final float OMBRE_MIN = 0.55f;
-    private static final float OMBRE_MAX = 1.3f;
-    private static final float RACINE_DEUX = 0.70710678f;
+    public static final int LARGEUR = Tuile.COTE + 2;
+    private static final double RAYON_METRES = Terrain.RAYON_KM * 1000.0;
+    private static final double TEXELS_PAR_ONDE = 4.0;
+    private static final double[] ONDES_CLIMAT = { 160.0, 60.0 };
+    private static final double[] ONDES_TACHES = { 70.0, 28.0 };
 
     private final Terrain terrain;
     private final Terrain.Point point = new Terrain.Point();
-    private final Color couleur = new Color();
     private final double[] d = new double[3];
-    private final double[] px = new double[LARGEUR * LARGEUR];
-    private final double[] py = new double[LARGEUR * LARGEUR];
-    private final double[] pz = new double[LARGEUR * LARGEUR];
-    private final float[] altitude = new float[LARGEUR * LARGEUR];
-    private final float[] temperature = new float[LARGEUR * LARGEUR];
-    private final byte[] biome = new byte[LARGEUR * LARGEUR];
-    private final byte[] eau = new byte[LARGEUR * LARGEUR];
-
-    private static final byte RIVIERE = 1;
-    private static final byte LAC = 2;
+    private final float[] courant = new float[2];
 
     public AtelierTuile(Terrain terrain) {
         this.terrain = terrain;
     }
 
-    public Pixmap generer(Tuile tuile) {
+    public void generer(Tuile tuile) {
+        FloatTextureData donnees = new FloatTextureData(LARGEUR, LARGEUR, GL30.GL_RGBA16F, GL20.GL_RGBA, GL20.GL_FLOAT, false);
+        donnees.prepare();
+        FloatBuffer valeurs = donnees.getBuffer();
+        Pixmap couverture = new Pixmap(LARGEUR, LARGEUR, Pixmap.Format.RGBA8888);
+        ByteBuffer octets = couverture.getPixels();
+        double espacement = Tuile.metresParTexel(tuile.niveau);
         for (int y = 0; y < LARGEUR; y++) {
             double b = tuile.coordonnee(tuile.y, (y - 0.5) / Tuile.COTE);
             for (int x = 0; x < LARGEUR; x++) {
                 double a = tuile.coordonnee(tuile.x, (x - 0.5) / Tuile.COTE);
                 Cube.direction(tuile.face, a, b, d);
-                int i = y * LARGEUR + x;
-                px[i] = d[0];
-                py[i] = d[1];
-                pz[i] = d[2];
                 terrain.echantillonner(d[0], d[1], d[2], tuile.niveau, point);
-                biome[i] = terrain.biome(d[0], d[1], d[2], point);
-                altitude[i] = point.altitude;
-                temperature[i] = point.temperature;
-                eau[i] = Biome.estGele(biome[i]) ? 0 : (byte) (point.lac ? LAC : (point.riviere ? RIVIERE : 0));
+                byte biome = terrain.biome(d[0], d[1], d[2], point);
+                boolean eau = !Biome.estGele(biome) && (point.lac || point.riviere);
+                int i = (y * LARGEUR + x) * 4;
+                valeurs.put(i, point.altitude);
+                valeurs.put(i + 1, point.temperature);
+                valeurs.put(i + 2, point.pluie);
+                valeurs.put(i + 3, eau ? 1f : 0f);
+                courant(tuile.face, eau);
+                octets.put(i + 2, (byte) Math.round(127.5f + 127f * courant[0]));
+                octets.put(i + 3, (byte) Math.round(127.5f + 127f * courant[1]));
 
             }
         }
+        tuile.donneesPretes = donnees;
+        tuile.couverturePrete = couverture;
+    }
+    
+    private void courant(int face, boolean eau) {
+        courant[0] = 0f;
+        courant[1] = 0f;
+        if (!eau || !point.riviere) return;
+        double pas = 1e-5;
+        double x = d[0] + point.courantX * pas, y = d[1] + point.courantY * pas, z = d[2] + point.courantZ * pas;
+        double da = Cube.coordonneeA(face, x, y, z) - Cube.coordonneeA(face, d[0], d[1], d[2]);
+        double db = Cube.coordonneeB(face, x, y, z) - Cube.coordonneeB(face, d[0], d[1], d[2]);
+        double norme = Math.sqrt(da * da + db * db);
+        if (norme < 1e-12) return;
+        courant[0] = (float) (da / norme);
+        courant[1] = (float) (db / norme);
+    }
 
-        Pixmap image = new Pixmap(Tuile.COTE, Tuile.COTE, Pixmap.Format.RGBA8888);
-        IntBuffer pixels = image.getPixels().order(ByteOrder.BIG_ENDIAN).asIntBuffer();
-        for (int y = 0; y < Tuile.COTE; y++) {
-            for (int x = 0; x < Tuile.COTE; x++) {
-                int i = (y + 1) * LARGEUR + x + 1;
-                choisirCouleur(i, tuile.biomes);
-                if (altitude[i] >= 0f && eau[i] == 0) {
-                    float ombre = calculerOmbre(i);
-                    couleur.mul(ombre, ombre, ombre, 1f).clamp();
-                }
-                pixels.put(y * Tuile.COTE + x, Color.rgba8888(couleur));
+
+    private float bruit(double[] ondes, double espacement, int graine) {
+        float somme = 0f, poids = 0f, amplitude = 1f;
+        for (int o = 0; o < ondes.length; o++) {
+            if (ondes[o] >= TEXELS_PAR_ONDE * espacement) {
+                double f = RAYON_METRES / ondes[o];
+                somme += amplitude * Bruit.perlin(d[0] * f, d[1] * f, d[2] * f, graine + o);
+                poids += amplitude;
             }
+            amplitude *= 0.5f;
         }
-        return image;
-    }
-
-    private void choisirCouleur(int i, boolean biomes) {
-        if (altitude[i] >= 0f && eau[i] == LAC) {
-            couleur.set(Palette.LAC);
-        } else if (altitude[i] >= 0f && eau[i] == RIVIERE) {
-            couleur.set(Palette.RIVIERE);
-        } else if (!biomes) {
-            Palette.relief(altitude[i], temperature[i], couleur);
-        } else if (biome[i] == Biome.OCEAN) {
-            Palette.ocean(-altitude[i], couleur);
-        } else {
-            Palette.biome(biome[i], couleur);
-        }
-    }
-
-    private float calculerOmbre(int i) {
-        int e = i + 1, w = i - 1, n = i + LARGEUR, s = i - LARGEUR;
-        double ax = px[e] - px[w], ay = py[e] - py[w], az = pz[e] - pz[w];
-        double bx = px[n] - px[s], by = py[n] - py[s], bz = pz[n] - pz[s];
-        double longueurA = Math.sqrt(ax * ax + ay * ay + az * az);
-        double longueurB = Math.sqrt(bx * bx + by * by + bz * bz);
-
-        double x = px[i], y = py[i], z = pz[i];
-        double horizontale = Math.max(1e-6, Math.sqrt(x * x + y * y));
-        double estX = -y / horizontale, estY = x / horizontale;
-        double nordX = -z * x / horizontale, nordY = -z * y / horizontale, nordZ = horizontale;
-        double lumiereX = (nordX - estX) * RACINE_DEUX;
-        double lumiereY = (nordY - estY) * RACINE_DEUX;
-        double lumiereZ = nordZ * RACINE_DEUX;
-
-        double penteA = (altitude[e] - altitude[w]) / (longueurA * Terrain.RAYON_KM);
-        double penteB = (altitude[n] - altitude[s]) / (longueurB * Terrain.RAYON_KM);
-        double versLumiereA = (ax * lumiereX + ay * lumiereY + az * lumiereZ) / longueurA;
-        double versLumiereB = (bx * lumiereX + by * lumiereY + bz * lumiereZ) / longueurB;
-
-        float ombre = 1f - FORCE_OMBRE * (float) (penteA * versLumiereA + penteB * versLumiereB);
-        return MathUtils.clamp(ombre, OMBRE_MIN, OMBRE_MAX);
+        if (poids == 0f) return 0.5f;
+        return Math.max(0f, Math.min(1f, 0.5f + 0.7f * somme / poids));
     }
 }

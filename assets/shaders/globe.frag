@@ -6,6 +6,7 @@ uniform sampler2D u_carte;
 uniform mat3 u_repere;
 uniform vec2 u_centre;
 uniform float u_rayon;
+uniform float u_opacite;
 
 const float PI = 3.14159265;
 const float FACES = 6.0;
@@ -36,13 +37,21 @@ void main() {
     vec2 q = (gl_FragCoord.xy - u_centre) / u_rayon;
     float distance2 = dot(q, q);
     if (distance2 >= 1.0) {
+        if (u_opacite < 1.0) {
+            discard;
+        }
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
     float hauteur = sqrt(1.0 - distance2);
     vec3 direction = u_repere * vec3(q, hauteur);
-    vec3 couleur = texture2D(u_carte, coordonneesCarte(direction)).rgb;
+    vec4 texel = texture2D(u_carte, coordonneesCarte(direction));
+    vec3 couleur = texel.rgb;
     float ombre = mix(0.45, 1.0, sqrt(hauteur));
     float bord = clamp((1.0 - sqrt(distance2)) * u_rayon, 0.0, 1.0);
+    if (u_opacite < 1.0) {
+        gl_FragColor = vec4(couleur, u_opacite * texel.a * bord);
+        return;
+    }
     gl_FragColor = vec4(couleur * ombre * bord, 1.0);
 }

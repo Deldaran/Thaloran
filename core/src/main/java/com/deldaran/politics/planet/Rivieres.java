@@ -180,6 +180,10 @@ public class Rivieres {
 
     public void influencer(double x, double y, double z, int niveau, Terrain.Point point) {
         point.riviere = false;
+        point.courantX = 0f;
+        point.courantY = 0f;
+        point.courantZ = 0f;
+
         int[] morceaux = seaux[seau(x, y, z)];
         if (morceaux == null) return;
 
@@ -205,6 +209,7 @@ public class Rivieres {
         double demiCase = TAILLE_SEAU_KM * 0.5 / (1 << niveau);
         double meilleur = 1.0;
         float niveauEau = 0f;
+        double plusProche = Double.MAX_VALUE;
 
         for (int m : morceaux) {
             double vx = bx[m] - ax[m], vy = by[m] - ay[m], vz = bz[m] - az[m];
@@ -225,7 +230,15 @@ public class Rivieres {
             }
             if (debit[m] >= seuil && distance < Math.max(largeur[m] * 0.5, demiCase)) {
                 point.riviere = true;
+                if (distance < plusProche) {
+                    plusProche = distance;
+                    double norme = 1.0 / Math.sqrt(vx * vx + vy * vy + vz * vz);
+                    point.courantX = (float) (vx * norme);
+                    point.courantY = (float) (vy * norme);
+                    point.courantZ = (float) (vz * norme);
+                }
             }
+
         }
 
         if (meilleur < 1.0 && point.altitude > niveauEau) {

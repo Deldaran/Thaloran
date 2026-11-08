@@ -20,14 +20,22 @@ public class RenduGlobe {
         ecran.setVertices(new float[] { -1f, -1f, 1f, -1f, 1f, 1f, -1f, 1f });
     }
 
-    public void dessiner(CarteCube carte, GameCamera camera) {
+    public void dessiner(CarteCube carte, GameCamera camera, float opacite) {
+        if (opacite < 1f) {
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        }
         carte.texture.bind(0);
         shader.bind();
         shader.setUniformi("u_carte", 0);
+        shader.setUniformf("u_opacite", opacite);
         shader.setUniformMatrix("u_repere", camera.repere());
         shader.setUniformf("u_centre", Gdx.graphics.getBackBufferWidth() / 2f, Gdx.graphics.getBackBufferHeight() / 2f);
         shader.setUniformf("u_rayon", (float) camera.rayonPixels);
         ecran.render(shader, GL20.GL_TRIANGLE_FAN);
+        if (opacite < 1f) {
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
     }
 
     public void dispose() {

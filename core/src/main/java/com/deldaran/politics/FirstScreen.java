@@ -35,6 +35,8 @@ public class FirstScreen implements Screen {
     GameCamera camera;
     CameraController cameraController;
     CarteCube carte;
+    CarteCube fond;
+    boolean fondPret;
     RenduGlobe rendu;
     int[] couleurs;
     float tempsCarte = 0f;
@@ -69,6 +71,8 @@ public class FirstScreen implements Screen {
 
     private static final float PERIODE_CARTE = 0.1f;
     private static final double RAYON_TUILES = 300.0;
+    private static final int MODE_BIOMES = 4;
+    private static final float OPACITE_CALQUE = 0.55f;
     private static final Color[] COULEURS_PEUPLES = {
         new Color(0.39f, 0.83f, 0.44f, 1f), new Color(0.85f, 0.40f, 0.23f, 1f), new Color(0.95f, 0.81f, 0.24f, 1f), new Color(0.64f, 0.23f, 0.82f, 1f)
     };
@@ -92,6 +96,7 @@ public class FirstScreen implements Screen {
         fichierHistoire = Gdx.files.external("Politics/mondes/histoire-" + GRAINE + ".bin");
         
         carte = new CarteCube(monde.sphere);
+        fond = new CarteCube(monde.sphere);
         rendu = new RenduGlobe();
         couleurs = new int[monde.sphere.nombre];
 
@@ -150,8 +155,19 @@ public class FirstScreen implements Screen {
         
 
         ScreenUtils.clear(Color.BLACK);
-        rendu.dessiner(carte, camera);
-        dessinerTuiles();
+        if (simulation.phase != Simulation.Phase.TERMINEE) {
+            rendu.dessiner(carte, camera, 1f);
+        } else {
+            if (!fondPret) preparerFond();
+            if (camera.rayonPixels >= RAYON_TUILES) {
+                dessinerTuiles();
+            } else {
+                rendu.dessiner(fond, camera, 1f);
+            }
+            if (modeAffichage != MODE_BIOMES) {
+                rendu.dessiner(carte, camera, OPACITE_CALQUE);
+            }
+        }
 
         fenetreDebug.dessiner(delta);
     }
@@ -165,14 +181,21 @@ public class FirstScreen implements Screen {
     }
 
     private void dessinerTuiles() {
-        if (simulation.phase != Simulation.Phase.TERMINEE) return;
         if (tuiles == null) {
             tuiles = new RenduTuiles(new Terrain(monde, simulation.climat.hauteurPlaines));
         }
-        boolean carteFine = modeAffichage == 1 || modeAffichage == 4;
-        if (carteFine && camera.rayonPixels >= RAYON_TUILES) {
-            tuiles.dessiner(camera, modeAffichage == 4);
+        tuiles.dessiner(camera, true);
+    }
+
+    private void preparerFond() {
+        int[] teintes = new int[couleurs.length];
+        for (int i = 0; i < teintes.length; i++) {
+            Palette.biome(monde.biome[i], couleurTemp);
+            ajouterEau(i);
+            teintes[i] = Color.rgba8888(couleurTemp);
         }
+        fond.mettreAJour(teintes);
+        fondPret = true;
     }
 
 
@@ -221,12 +244,12 @@ public class FirstScreen implements Screen {
         Population p = histoire.population;
         int r = p.regions.regionDe[i];
         if (!p.regions.estTerre[r]) {
-            couleurTemp.set(0.06f, 0.12f, 0.24f, 1f);
+            couleurTemp.set(0.06f, 0.12f, 0.24f, 0f);
             return;
         }
         int e = p.etats.regionEtat[r];
         if (e < 0) {
-            couleurTemp.set(0.29f, 0.29f, 0.26f, 1f);
+            couleurTemp.set(0.29f, 0.29f, 0.26f, 0f);
             return;
         }
         couleurTemp.fromHsv((e * 47) % 360, 0.65f, 0.9f);
@@ -273,7 +296,7 @@ public class FirstScreen implements Screen {
         Population p = histoire.population;
         int r = p.regions.regionDe[i];
         if (!p.regions.estTerre[r]) {
-            couleurTemp.set(0.06f, 0.12f, 0.24f, 1f);
+            couleurTemp.set(0.06f, 0.12f, 0.24f, 0f);
             return;
         }
         int dominant = -1, nombre = 0;
@@ -285,7 +308,7 @@ public class FirstScreen implements Screen {
             }
         }
         if (dominant < 0) {
-            couleurTemp.set(0.29f, 0.29f, 0.26f, 1f);
+            couleurTemp.set(0.29f, 0.29f, 0.26f, 0f);
             return;
         }
         float d = 0.45f + 0.55f * Math.min(1f, p.habitants[r] / Math.max(1f, p.capacite[dominant][r]));
@@ -329,7 +352,7 @@ public class FirstScreen implements Screen {
         }
         int r = regions.regionDe[i];
         if (!regions.estTerre[r]) {
-            couleurTemp.set(0.06f, 0.12f, 0.24f, 1f);
+            couleurTemp.set(0.06f, 0.12f, 0.24f, 0f);
             return;
         }
         float f = regions.nourriture[r] / regions.cases[r];
@@ -608,6 +631,7 @@ public class FirstScreen implements Screen {
     @Override
     public void dispose() {
         carte.dispose();
+        fond.dispose();
         rendu.dispose();
         if (tuiles != null) tuiles.dispose();
         fenetreDebug.dispose();

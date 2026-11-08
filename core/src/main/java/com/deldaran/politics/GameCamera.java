@@ -8,16 +8,22 @@ public class GameCamera {
 
     public double vitessePixels = 500.0;
     public double rayonMin = 150.0;
-    public double rayonMax = 3200000.0;
+    public double rayonMax = 24000000.0;
 
 
     public double longitude = 0.0;
     public double latitude = 0.0;
     public double rayonPixels = 330.0;
+    public double glissementX = 0.0;
+    public double glissementY = 0.0;
 
     private final Matrix3 repere = new Matrix3();
 
     public void deplacerPixels(double pixelsX, double pixelsY) {
+        glissementX += pixelsX / rayonPixels;
+        glissementY += pixelsY / rayonPixels;
+
+
         double cosinus = Math.max(COSINUS_MIN, Math.cos(latitude));
         longitude += pixelsX / (rayonPixels * cosinus);
         latitude += pixelsY / rayonPixels;
