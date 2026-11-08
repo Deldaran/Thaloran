@@ -17,6 +17,7 @@ uniform float u_densite;
 uniform float u_plat;
 uniform float u_temps;
 uniform float u_maree;
+uniform float u_palier;
 
 
 varying vec2 v_texture;
@@ -34,7 +35,8 @@ const float VITESSE_RIVIERE = 1.5;
 const float ESTUAIRE = 2.5;
 const float TOUFFE = 5.0;
 const float VIDE_HERBE = 0.12;
-const float SEUIL_HERBE = 1.2;
+const float SEUIL_HERBE = 0.8;
+const float PALIER = 10.0;
 
 float mod289(float x) {
     return x - floor(x / 289.0) * 289.0;
@@ -267,7 +269,7 @@ void main() {
         }
 
     }
-    
+
     if ((m.x == 13.0 || m.x == 14.0) && metres < niveau && niveau - metres < DEPASSE && u_metresPixel < SEUIL_HERBE && u_plat > 0.99) {
         vec3 sol = materiau(d.r, d.g, d.b, d.a, couverture, g, length(pente), -1000.0);
         if (sol.x == 0.0 || sol.x == 1.0 || sol.x == 8.0 || sol.x == 10.0 || sol.x == 11.0) {
@@ -284,5 +286,10 @@ void main() {
     float colonne = clamp(floor(indice + 0.5), 0.0, 7.0);
     vec3 couleur = texture2D(u_palette, vec2((colonne + 0.5) / 8.0, (m.x + 0.5) / 16.0)).rgb;
     float ombre = mix(0.45, 1.0, sqrt(sqrt(1.0 - distance2)));
-    gl_FragColor = vec4(couleur * ombre, 1.0);
+
+    float palier = max(floor(metres / PALIER), 0.0);
+    float rang = clamp(palier - u_palier, -63.0, 63.0) + 64.0;
+    float eau = m.x == 13.0 || m.x == 14.0 ? 1.0 : 0.0;
+    gl_FragColor = vec4(couleur * ombre, (rang * 2.0 + eau) / 255.0);
+
 }

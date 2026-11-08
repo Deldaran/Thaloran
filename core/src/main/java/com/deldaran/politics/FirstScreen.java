@@ -59,6 +59,8 @@ public class FirstScreen implements Screen {
     float dernierClimat = -1000f;
     
     RenduTuiles tuiles;
+    Vegetation vegetation;
+
     private static final long GRAINE = 42L;
 
     
@@ -182,9 +184,13 @@ public class FirstScreen implements Screen {
 
     private void dessinerTuiles() {
         if (tuiles == null) {
-            tuiles = new RenduTuiles(new Terrain(monde, simulation.climat.hauteurPlaines));
+            Terrain terrain = new Terrain(monde, simulation.climat.hauteurPlaines);
+            tuiles = new RenduTuiles(terrain);
+            vegetation = new Vegetation(terrain);
         }
         tuiles.dessiner(camera, true);
+        vegetation.dessiner(camera, tuiles);
+
     }
 
     private void preparerFond() {
@@ -634,6 +640,7 @@ public class FirstScreen implements Screen {
         fond.dispose();
         rendu.dispose();
         if (tuiles != null) tuiles.dispose();
+        if (vegetation != null) vegetation.dispose();
         fenetreDebug.dispose();
         arreterHistoire();
     }

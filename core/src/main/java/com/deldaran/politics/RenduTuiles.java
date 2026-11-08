@@ -33,6 +33,11 @@ public class RenduTuiles {
     private static final double MAREE = 0.5;
     private static final double PERIODE_MAREE = 180.0;
     private static final double CYCLE = 3600.0;
+    private static final double PALIER = 10.0;
+    private static final double INCLINAISON = 0.5;
+    private static final int MARGE = 128;
+    private static final double RELIEF_DEBUT = 2.0;
+    private static final double RELIEF_PLEIN = 1.2;
 
 
     private final Map<Long, Tuile> tuiles = new HashMap<>();
@@ -48,6 +53,12 @@ public class RenduTuiles {
     private final SpriteBatch pinceau = new SpriteBatch();
     public static final double PIXEL_MIN = 3.0;
     private final ShaderProgram agrandir;
+    private final ShaderProgram relief;
+    private final SpriteBatch graveur = new SpriteBatch();
+    private final Terrain.Point point = new Terrain.Point();
+    private FrameBuffer cadreRelief;
+    private int marge;
+    private double palierBase, pasRelief, baseRelief;
 
     private final float[] sommets = new float[Tuile.POINTS * Tuile.POINTS * FLOTTANTS_PAR_POINT];
 
@@ -92,6 +103,12 @@ public class RenduTuiles {
             throw new IllegalStateException(agrandir.getLog());
         }
         pinceau.setShader(agrandir);
+        relief = new ShaderProgram(Gdx.files.internal("shaders/agrandir.vert"), Gdx.files.internal("shaders/relief.frag"));
+        if (!relief.isCompiled()) {
+            throw new IllegalStateException(relief.getLog());
+        }
+        graveur.setShader(relief);
+        graveur.disableBlending();
 
         int nombre = Math.max(1, Runtime.getRuntime().availableProcessors() - 2);
         for (int i = 0; i < nombre; i++) {
@@ -177,6 +194,7 @@ public class RenduTuiles {
         shader.setUniformf("u_fondu", (float) (Math.log(echelle / PIXEL_MIN) / Math.log(2.0)));
         shader.setUniformf("u_temps", (float) temps);
         shader.setUniformf("u_maree", (float) (MAREE * Math.sin(2.0 * Math.PI * temps / PERIODE_MAREE)));
+        shader.setUniformf("u_palier", (float) palierBase);
 
         for (int face = 0; face < Cube.FACES; face++) {
             parcourir(obtenir(face, 0, 0, 0));
@@ -185,7 +203,27 @@ public class RenduTuiles {
         Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
         oublierVieillesTuiles();
 
-        Texture rendu = cadre.getColorBufferTexture();
+        cadreRelief.begin();
+        Gdx.gl.glClearColor(0f, 0f, 0f, 0f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        Gdx.gl.glViewport(0, 0, largeurCadre, hauteurCadre);
+        palette.bind(1);
+        Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
+        graveur.getProjectionMatrix().setToOrtho2D(0f, 0f, largeurCadre, hauteurCadre);
+        graveur.begin();
+        relief.setUniformi("u_palette", 1);
+        relief.setUniformf("u_taille", largeurMax, hauteurMax);
+        relief.setUniformf("u_cadre", largeurCadre, hauteurCadre);
+        relief.setUniformf("u_camera", cameraX, cameraY);
+        relief.setUniformf("u_pas", (float) pasRelief);
+        relief.setUniformf("u_base", (float) baseRelief);
+        relief.setUniformf("u_temps", (float) temps);
+        graveur.draw(cadre.getColorBufferTexture(), 0f, 0f, largeurCadre, hauteurCadre);
+        graveur.end();
+        cadreRelief.end();
+
+        Texture rendu = cadreRelief.getColorBufferTexture();
+
         pinceau.getProjectionMatrix().setToOrtho2D(0f, 0f, largeur, hauteur);
         pinceau.begin();
         agrandir.setUniformf("u_taille", largeurMax, hauteurMax);
@@ -209,20 +247,27 @@ public class RenduTuiles {
         hauteur = Gdx.graphics.getBackBufferHeight();
         
         int lm = 2 * ((int) Math.ceil(largeur / PIXEL_MIN / 2.0) + 1);
-        int hm = 2 * ((int) Math.ceil(hauteur / PIXEL_MIN / 2.0) + 1);
+        int hm = 2 * ((int) Math.ceil(hauteur / PIXEL_MIN / 2.0) + 1 + MARGE);
+        
         if (cadre == null || lm != largeurMax || hm != hauteurMax) {
             if (cadre != null) cadre.dispose();
+            if (cadreRelief != null) cadreRelief.dispose();
             cadre = new FrameBuffer(Pixmap.Format.RGBA8888, lm, hm, false);
-            cadre.getColorBufferTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            cadre.getColorBufferTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+            cadreRelief = new FrameBuffer(Pixmap.Format.RGBA8888, lm, hm, false);
+            cadreRelief.getColorBufferTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             largeurMax = lm;
             hauteurMax = hm;
         }
+
         double quart = Math.PI / 2.0;
         niveauGrain = (int) Math.floor(Math.log(quart * rayon / PIXEL_MIN) / Math.log(2.0));
         double cellule = quart / Math.pow(2.0, niveauGrain);
         echelle = cellule * rayon;
+        preparerRelief();
+
         largeurCadre = Math.min(largeurMax, 2 * ((int) Math.ceil(largeur / echelle / 2.0) + 1));
-        hauteurCadre = Math.min(hauteurMax, 2 * ((int) Math.ceil(hauteur / echelle / 2.0) + 1));
+        hauteurCadre = Math.min(hauteurMax, 2 * ((int) Math.ceil(hauteur / echelle / 2.0) + 1 + marge));
         double cx = camera.glissementX / cellule;
         double cy = camera.glissementY / cellule;
         double px = Math.floor(cx), py = Math.floor(cy);
@@ -232,6 +277,26 @@ public class RenduTuiles {
         cameraX = (float) (gx - Math.floor(gx / MODULE) * MODULE);
         cameraY = (float) (gy - Math.floor(gy / MODULE) * MODULE);
 
+    }
+    private void preparerRelief() {
+        double metresPixel = Terrain.RAYON_KM * 1000.0 * echelle / rayon;
+        double fondu = Math.max(0.0, Math.min(1.0, (RELIEF_DEBUT - metresPixel) / (RELIEF_DEBUT - RELIEF_PLEIN)));
+        if (rayon < RAYON_PLAT) fondu = 0.0;
+        marge = fondu > 0.0 ? MARGE : 0;
+        double reference = 0.0;
+        if (fondu > 0.0) {
+            terrain.echantillonner(centre[0], centre[1], centre[2], 7, point);
+            reference = Math.max(point.altitude * 1000.0, 0.0);
+        }
+        palierBase = Math.floor(reference / PALIER);
+        pasRelief = PALIER * INCLINAISON / metresPixel * fondu;
+        baseRelief = (palierBase * PALIER - reference) * INCLINAISON / metresPixel * fondu;
+    }
+
+    public float decalage(double altitude) {
+        double palier = Math.max(Math.floor(altitude * 1000.0 / PALIER), 0.0);
+        double s = Math.floor((palier - palierBase) * pasRelief + baseRelief + 0.5);
+        return (float) (Math.max(-MARGE, Math.min(MARGE, s)) * echelle);
     }
 
     private void envoyerTextures() {
@@ -337,7 +402,9 @@ public class RenduTuiles {
     }
 
     private boolean estVisible() {
-        return devant && maxX >= -largeur / 2f && minX <= largeur / 2f && maxY >= -hauteur / 2f && minY <= hauteur / 2f;
+        float bord = hauteur / 2f + marge * (float) echelle;
+        return devant && maxX >= -largeur / 2f && minX <= largeur / 2f && maxY >= -bord && minY <= bord;
+
     }
 
     private void tracer(Tuile tuile) {
@@ -372,6 +439,9 @@ public class RenduTuiles {
         pinceau.dispose();
         agrandir.dispose();
         if (cadre != null) cadre.dispose();
+        if (cadreRelief != null) cadreRelief.dispose();
+        relief.dispose();
+        graveur.dispose();
 
     }
 }
