@@ -1,5 +1,5 @@
 package com.deldaran.politics.histoire;
-
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -31,6 +31,10 @@ public final class Recit {
     private static String de(String nom) {
         return ("AEIOUYaeiouy".indexOf(nom.charAt(0)) >= 0 ? "d'" : "de ") + nom;
     }
+    private static String du(String famille) {
+        return famille.startsWith("le ") ? "du " + famille.substring(3) : "de " + famille;
+    }
+
 
     private static String majuscule(String s) {
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
@@ -79,7 +83,8 @@ public final class Recit {
         if (avant < 0 || x.lien[r] == Maisons.ETRANGER) return choix(s, nom + " a pris le pouvoir à " + a, nom + " est monté" + (x.sexeDe(id) == 1 ? "e" : "") + " sur le trône " + de(a));
         String ancien = chef(p, e, x.personne[avant], s);
         if (x.lien[r] == Maisons.ENFANT) return nom + " a succédé à " + (x.sexe[avant] == 1 ? "sa mère " : "son père ") + ancien + " sur le trône " + de(a);
-        return nom + ", de la famille de " + ancien + ", a hérité du trône " + de(a);
+        return nom + ", de la famille " + de(ancien) + ", a hérité du trône " + de(a);
+
     }
 
 
@@ -225,24 +230,74 @@ public final class Recit {
 
     public static String parler(Population p, Savoir.Temoin t, List<Savoir.Souvenir> souvenirs, int nombre) {
         if (souvenirs.isEmpty()) return "Je ne sais pas grand-chose de tout ça. Ici, on s'occupe de ses bêtes et de sa récolte.";
-        StringBuilder texte = new StringBuilder();
+                List<String> phrases = paroles(p, t, souvenirs);
+        return String.join("\n\n", phrases.subList(0, Math.min(nombre, phrases.size())));
+    }
+
+    public static List<String> paroles(Population p, Savoir.Temoin t, List<Savoir.Souvenir> souvenirs) {
+        List<String> phrases = new ArrayList<>();
         LinkedHashSet<Integer> sources = new LinkedHashSet<>();
-        int dits = 0;
         for (Savoir.Souvenir s : souvenirs) {
-            if (dits == nombre) break;
             if (s.source >= 0 && !sources.add(s.source)) continue;
             int ton = Savoir.ton(p, t.etat, t.peuple, s.fait);
-            if (dits++ > 0) texte.append("\n\n");
-            texte.append(lier(ouverture(p, t, s), fait(p, s, ton))).append(", ").append(quand(p, t, s)).append('.').append(avis(p, t, s, ton));
+            phrases.add(lier(ouverture(p, t, s), fait(p, s, ton)) + ", " + quand(p, t, s) + "." + avis(p, t, s, ton));
         }
+        return phrases;
+    }
+
+    public static String nom(Population p, Savoir.Temoin t) {
+        return Noms.personne(t.peuple, p.graine, t.id, t.sexe);
+    }
+
+    private static String lieuDe(Population p, Savoir.Temoin t) {
+        return t.ville >= 0 ? Noms.ville(p.villes.peuple[t.ville], p.graine, t.ville) : "la campagne";
+    }
+
+    public static String decrire(Population p, Savoir.Temoin t) {
+        StringBuilder texte = new StringBuilder(nom(p, t));
+        if (t.etat >= 0 && p.etats.chef[t.etat] == t.id) texte.append(", ").append(rang(p, t.etat, t.sexe == 1));
+        else if (t.maison >= 0) texte.append(", ").append(du(nomMaison(p, t.maison)));
+        return texte.append(", ").append(p.annee - t.naissance).append(" ans").toString();
+    }
+
+    public static String sePresenter(Population p, Savoir.Temoin t) {
+        StringBuilder texte = new StringBuilder("Je m'appelle ").append(nom(p, t));
+        if (t.maison >= 0) texte.append(", ").append(du(nomMaison(p, t.maison)));
+        texte.append(". J'ai ").append(p.annee - t.naissance).append(" ans et je vis à ").append(lieuDe(p, t)).append('.');
+        if (t.instruction >= 50) texte.append(" J'ai passé ma vie parmi les livres.");
+        else if (t.instruction >= p.livres.reglages.lecture) texte.append(" Je sais lire, et ça me suffit.");
+        else if (t.instruction < 20) texte.append(" Les lettres, ce n'est pas pour moi.");
         return texte.toString();
     }
 
+    public static String gouvernement(Population p, Savoir.Temoin t) {
+        if (t.etat < 0) return "Ici, personne ne commande. On se débrouille entre nous.";
+        Etats e = p.etats;
+        int q = e.peuple[t.etat];
+        long id = e.chef[t.etat];
+        boolean femme = p.maisons.sexeDe(id) == 1;
+        String nom = Noms.personne(q, p.graine, id, femme ? 1 : 0);
+        String pays = Noms.ville(q, p.graine, e.capitale[t.etat]);
+        int duree = p.annee - p.maisons.debut[e.regne[t.etat]];
+        String depuis = duree <= 1 ? "depuis peu" : "depuis " + duree + " ans";
+        if (id == t.id) return "Ici, c'est moi qui gouverne, " + depuis + ". " + majuscule(pays) + " m'obéit.";
+        String texte = "Nous dépendons " + de(pays) + ". " + majuscule(rang(p, t.etat, femme)) + " " + nom + ", " + du(nomMaison(p, e.maison[t.etat])) + ", y règne " + depuis + ".";
+        return q == t.peuple ? texte : texte + " Ce ne sont pas des nôtres.";
+    }
+
+    public static String saluer(Population p, Savoir.Temoin t) {
+        if (t.etat >= 0 && p.etats.chef[t.etat] == t.id) return "Tu oses m'adresser la parole. Parle, et sois bref.";
+        if (t.bien < -20) return "Qu'est-ce que tu me veux ?";
+        if (t.loi > 30) return "Le bonjour. Que puis-je pour toi ?";
+        return "Oui ? Je t'écoute.";
+    }
+
     public static String presenter(Population p, Savoir.Temoin t) {
-        String nom = Noms.personne(t.peuple, p.graine, t.id, t.sexe);
-        if (t.maison >= 0) nom += ", de " + nomMaison(p, t.maison);
+        String nom = nom(p, t);
+        if (t.maison >= 0) nom += ", " + du(nomMaison(p, t.maison));
         int age = p.annee - t.naissance;
-        String lieu = t.ville >= 0 ? Noms.ville(p.villes.peuple[t.ville], p.graine, t.ville) : "la campagne";
+        String lieu = lieuDe(p, t);
+
         String e1 = t.sexe == 1 ? "e" : "";
         String culture = t.instruction >= 50 ? "lettré" + e1 : t.instruction >= p.livres.reglages.lecture ? "sait lire" : t.instruction >= 20 ? "peu instruit" + e1 : "illettré" + e1;
         return nom + ", " + p.reglages.peuples[t.peuple].nom + ", " + age + " ans, " + lieu + " (" + culture + ", instruction " + t.instruction + ")";

@@ -97,6 +97,10 @@ public class Etats {
         hasard ^= hasard << 17;
         return (hasard >>> 40) * 0x1.0p-24f;
     }
+    public int placeChef(int e) {
+        return slotChef[e];
+    }
+
 
     public boolean estVivant(int e) {
         return fin[e] == VIVANT;

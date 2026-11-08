@@ -19,6 +19,7 @@ import com.deldaran.politics.planet.Biome;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import com.deldaran.politics.histoire.Histoire;
+import com.deldaran.politics.histoire.Joueur;
 import com.deldaran.politics.histoire.Population;
 import com.deldaran.politics.histoire.Peuple;
 import com.deldaran.politics.histoire.Noms;
@@ -382,6 +383,11 @@ public class FirstScreen implements Screen {
             byte biome = BIOMES_FERTILES[i];
             reglerRegion(fertilite, NOMS_BIOMES[i], 0f, 1f, 0.05f, r.fertilite[biome], v -> r.fertilite[biome] = v);
         }
+        FenetreDebug.Section sectionJoueur = fenetreDebug.ajouterSection("Joueur");
+        sectionJoueur.ajouterBouton("Entrer dans le monde", () -> {
+            if (histoire != null) jouer(histoire.joueur::ouvrir);
+        });
+
         FenetreDebug.Section sectionHistoire = fenetreDebug.ajouterSection("Histoire");
         infoHistoire(sectionHistoire, "Annee", () -> String.valueOf(histoire.population.annee));
         infoHistoire(sectionHistoire, "Vivants", () -> String.valueOf(histoire.population.vivants));
@@ -484,6 +490,19 @@ public class FirstScreen implements Screen {
             ajouterPeuple(sectionHistoire, q);
         }
 
+    }
+
+    private void jouer(Supplier<Joueur.Scene> suite) {
+        if (histoire == null) return;
+        Histoire courante = histoire;
+        if (courante.population.annee < courante.dureeMax) {
+            fenetreDebug.afficherTexte("Joueur", "L'histoire n'est pas encore finie.");
+            return;
+        }
+        courante.demander(() -> {
+            Joueur.Scene scene = suite.get();
+            Gdx.app.postRunnable(() -> fenetreDebug.afficherChoix(scene.titre, scene.texte, scene.choix, i -> jouer(scene.suites.get(i))));
+        });
     }
 
     private void montrerTexte(String titre, Function<Population, String> texte) {

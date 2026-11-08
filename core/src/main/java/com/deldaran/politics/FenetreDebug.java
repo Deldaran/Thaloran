@@ -1,6 +1,8 @@
 package com.deldaran.politics;
 
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.badlogic.gdx.graphics.Color;
@@ -33,6 +35,7 @@ public class FenetreDebug {
     private static final float HAUTEUR_TITRE = 26f;
     private static final float LARGEUR_LECTURE = 540f;
     private static final float HAUTEUR_LECTURE = 460f;
+    private static final float HAUTEUR_CHOIX = 22f;
 
     private final Stage stage;
     private final BitmapFont police;
@@ -50,6 +53,8 @@ public class FenetreDebug {
     private final Window lecture;
     private final Label texteLecture;
     private final ScrollPane defilementLecture;
+    private final Cell<ScrollPane> placeLecture;
+    private final Table choixLecture = new Table();
 
     private static class Info {
         final Label label;
@@ -223,7 +228,9 @@ public class FenetreDebug {
                 stage.setScrollFocus(defilementLecture);
             }
         });
-        lecture.add(defilementLecture).width(LARGEUR_LECTURE).height(HAUTEUR_LECTURE).row();
+        placeLecture = lecture.add(defilementLecture).width(LARGEUR_LECTURE).height(HAUTEUR_LECTURE);
+        lecture.row();
+        lecture.add(choixLecture).left().padTop(6f).row();
         Label fermer = new Label("> Fermer", styleBouton);
         fermer.addListener(new ClickListener() {
             @Override
@@ -239,8 +246,26 @@ public class FenetreDebug {
     }
     
     public void afficherTexte(String titre, String texte) {
+        afficherChoix(titre, texte, List.of(), i -> { });
+    }
+
+    public void afficherChoix(String titre, String texte, List<String> choix, IntConsumer action) {
+        choixLecture.clear();
+        for (int i = 0; i < choix.size(); i++) {
+            int indice = i;
+            Label bouton = new Label("> " + choix.get(i), styleBouton);
+            bouton.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    action.accept(indice);
+                }
+            });
+            choixLecture.add(bouton).left().height(HAUTEUR_CHOIX).row();
+        }
+        placeLecture.height(HAUTEUR_LECTURE - choix.size() * HAUTEUR_CHOIX / 2f);
         lecture.getTitleLabel().setText(titre);
         texteLecture.setText(texte);
+        lecture.pack();
         defilementLecture.layout();
         defilementLecture.setScrollY(0f);
         defilementLecture.updateVisualScroll();

@@ -9,6 +9,7 @@ public class Histoire {
     private static final long ATTENTE_PAUSE_MS = 50L;
 
     public final Population population;
+    public final Joueur joueur;
     public volatile int dureeMax = 5000;
     public volatile boolean enPause = false;
     public volatile float msParAn = 0f;
@@ -32,6 +33,8 @@ public class Histoire {
             }
         }
         population = depart;
+        joueur = new Joueur(population, fichier.sibling(fichier.name().replace("histoire", "joueur")));
+        if (reprendre) joueur.charger();
 
         fil = new Thread(this::tourner, "histoire");
         fil.setDaemon(true);
