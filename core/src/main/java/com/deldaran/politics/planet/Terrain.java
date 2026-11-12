@@ -12,6 +12,7 @@ public class Terrain {
 
     private static final double FREQUENCE_BASE = 53.0;
     private static final float GAIN = 0.5f;
+    private static final float RUGOSITE_MONTAGNE = 0.1f;
     private static final float RELIEF_MER = 0.15f;
     private static final float RELIEF_PLAINE = 0.3f;
     private static final float RELIEF_MONTAGNE = 1.2f;
@@ -155,14 +156,15 @@ public class Terrain {
     private float detail(double x, double y, double z, int octaves, float base) {
         double frequence = FREQUENCE_BASE;
         float amplitude = 1f, doux = 0f, cretes = 0f;
+        float montagne = Math.max(0f, Math.min(1f, (base - DEBUT_CRETES) / ETENDUE_CRETES));
+        float gain = GAIN + RUGOSITE_MONTAGNE * montagne;
         for (int o = 0; o < octaves; o++) {
             float n = Bruit.perlin(x * frequence, y * frequence, z * frequence, graine + o);
             doux += amplitude * n;
             cretes += amplitude * (0.35f - Math.abs(n)) * 2f;
             frequence *= 2.0;
-            amplitude *= GAIN;
+            amplitude *= gain;
         }
-        float montagne = Math.max(0f, Math.min(1f, (base - DEBUT_CRETES) / ETENDUE_CRETES));
         float terre = Math.max(0f, Math.min(1f, (base + 0.5f) / 0.8f));
         float relief = RELIEF_MER + terre * (RELIEF_PLAINE - RELIEF_MER + montagne * RELIEF_MONTAGNE);
         return relief * (doux + (cretes - doux) * montagne);

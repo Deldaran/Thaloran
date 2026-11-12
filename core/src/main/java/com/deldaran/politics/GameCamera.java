@@ -8,7 +8,7 @@ public class GameCamera {
 
     public double vitessePixels = 500.0;
     public double rayonMin = 150.0;
-    public double rayonMax = 80000000.0;
+    public double rayonMax = 166400000.0;
 
 
     public double longitude = 0.0;
@@ -16,6 +16,7 @@ public class GameCamera {
     public double rayonPixels = 330.0;
     public double glissementX = 0.0;
     public double glissementY = 0.0;
+    public double rotationVue = 0.0, ecrasementVue = 1.0;
 
     private final Matrix3 repere = new Matrix3();
 
@@ -29,6 +30,12 @@ public class GameCamera {
         latitude += pixelsY / rayonPixels;
         latitude = Math.max(-LATITUDE_MAX, Math.min(LATITUDE_MAX, latitude));
         longitude = Math.IEEEremainder(longitude, 2.0 * Math.PI);
+    }
+
+    public void glisserEcran(double pixelsX, double pixelsY) {
+        double y = pixelsY / Math.max(ecrasementVue, 0.1);
+        double c = Math.cos(rotationVue), s = Math.sin(rotationVue);
+        deplacerPixels(c * pixelsX + s * y, -s * pixelsX + c * y);
     }
 
     public void zoomer(double facteur) {

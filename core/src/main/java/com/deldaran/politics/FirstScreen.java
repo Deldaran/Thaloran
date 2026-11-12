@@ -54,25 +54,47 @@ public class FirstScreen implements Screen {
     Regions regions;
     final Regions.Reglages reglagesRegions = new Regions.Reglages();
     final Population.Reglages reglagesPopulation = new Population.Reglages();
-    
+
     float pasParSeconde = 10f;
 
     FenetreDebug fenetreDebug;
-    int modeAffichage = 0;
+    int modeAffichage = 4;
     float dernierClimat = -1000f;
-    
+
     RenduTuiles tuiles;
     Vegetation vegetation;
     Terrain terrain;
     Assembleur assembleur;
+    Batiments batiments;
+    final Villages villages = new Villages();
+    Meteo meteo;
+    Ciel ciel;
+    Traces traces;
+    Rues rues;
+    Chargement chargement;
+    final Obstacles obstacles = new Obstacles() {
+        public boolean bloque(double x, double y, double z, double r) {
+            return (villages != null && villages.bloque(x, y, z, r)) || (vegetation != null && vegetation.bloque(x, y, z, r));
+        }
+
+        public boolean surPont(double x, double y, double z) {
+            return villages != null && villages.surPont(x, y, z);
+        }
+    };
+    boolean arrive;
     final List<Personnage> personnages = new ArrayList<>();
     private final Terrain.Point point = new Terrain.Point();
     private final Random hasard = new Random();
     private float[] errance = new float[0];
+    Personnage joueur;
+    private static final double RAYON_JOUEUR = 2.0e7;
+    private static final double ZOOM_JEU = 6.0e7;
+    private static final double MARCHE = 1.4;
+    private static final double COURSE = 4.0;
 
     private static final long GRAINE = 42L;
 
-    
+
     Histoire histoire;
     boolean enPause = false;
     float tempsAccumule = 0f;
@@ -92,7 +114,7 @@ public class FirstScreen implements Screen {
     private static final String[] NOMS_MODES = { "plaques", "relief", "temperature", "pluie", "biomes", "regions", "nourriture", "population", "villes", "commerce", "etats" };
 
     private final Color couleurTemp = new Color();
-    
+
     @Override
     public void show() {
         camera = new GameCamera();
@@ -105,7 +127,7 @@ public class FirstScreen implements Screen {
         fichierMonde = Gdx.files.external("Politics/mondes/monde-" + GRAINE + ".bin");
         mondeEnregistre = Sauvegarde.charger(monde, simulation, fichierMonde);
         fichierHistoire = Gdx.files.external("Politics/mondes/histoire-" + GRAINE + ".bin");
-        
+
         carte = new CarteCube(monde.sphere);
         fond = new CarteCube(monde.sphere);
         rendu = new RenduGlobe();
@@ -113,6 +135,7 @@ public class FirstScreen implements Screen {
 
         fenetreDebug = new FenetreDebug();
         remplirDebug();
+        chargement = new Chargement();
 
         Gdx.input.setInputProcessor(new InputMultiplexer(fenetreDebug.getStage(), cameraController));
     }
@@ -126,9 +149,19 @@ public class FirstScreen implements Screen {
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) && terrain != null) {
             peupler();
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O) && meteo != null) {
+            meteo.forcage = (meteo.forcage + 1) % Meteo.FORCAGES.length;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T) && terrain != null) {
+            teleporterSouris();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H) && meteo != null) {
+            meteo.decalageHeures += 3.0;
+        }
+        if (meteo != null) meteo.avancer(delta, accelerationMeteo());
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             enPause = !enPause;
-        }  
+        }
 
         if (!enPause) {
             tempsAccumule += delta;
@@ -166,24 +199,48 @@ public class FirstScreen implements Screen {
             rafraichirCarte();
         }
 
-        
+
 
         ScreenUtils.clear(Color.BLACK);
         if (simulation.phase != Simulation.Phase.TERMINEE) {
             rendu.dessiner(carte, camera, 1f);
         } else {
             if (!fondPret) preparerFond();
+            if (tuiles == null) initialiserMonde();
+            if (!arrive && camera.rayonPixels >= RAYON_JOUEUR) {
+                arrive = true;
+                chargement.commencer();
+            }
             if (camera.rayonPixels >= RAYON_TUILES) {
                 dessinerTuiles();
             } else {
                 rendu.dessiner(fond, camera, 1f);
             }
+            ciel.ecrasement = camera.rayonPixels >= RAYON_TUILES ? tuiles.ecrasement() : 1f;
+            ciel.rotation = camera.rayonPixels >= RAYON_TUILES ? tuiles.rotation() : 0.0;
+            Personnage.rotationVue = ciel.rotation;
+            camera.rotationVue = ciel.rotation;
+            camera.ecrasementVue = ciel.ecrasement;
+            ciel.dessiner(camera, meteo, delta);
             if (modeAffichage != MODE_BIOMES) {
                 rendu.dessiner(carte, camera, OPACITE_CALQUE);
             }
         }
 
         fenetreDebug.dessiner(delta);
+        dessinerChargement(delta);
+    }
+
+    private void dessinerChargement(float delta) {
+        int sol = 0, forets = 0, gens = 0, ciel = 0;
+        if (tuiles != null && camera.rayonPixels >= RAYON_TUILES) {
+            sol = tuiles.enAttente();
+            forets = vegetation.parcellesManquantes;
+            gens = vegetation.personnagesManquants + vegetation.maisonsManquantes;
+        }
+        if (meteo != null && !meteo.pret()) ciel = 1;
+        String etape = sol > 0 ? "La terre se forme" : forets > 0 ? "Les forets poussent" : gens > 0 ? "Les vivants s'eveillent" : ciel > 0 ? "Le ciel se couvre" : "";
+        chargement.dessiner(sol + forets + gens + ciel, etape, delta);
     }
 
     private void couleurPlaque(int i) {
@@ -194,16 +251,159 @@ public class FirstScreen implements Screen {
         }
     }
 
-    private void dessinerTuiles() {
-        if (tuiles == null) {
-            terrain = new Terrain(monde, simulation.climat.hauteurPlaines);
-            tuiles = new RenduTuiles(terrain);
-            vegetation = new Vegetation(terrain);
-            assembleur = new Assembleur();
+    private void initialiserMonde() {
+        terrain = new Terrain(monde, simulation.climat.hauteurPlaines);
+        tuiles = new RenduTuiles(terrain);
+        vegetation = new Vegetation(terrain);
+        assembleur = new Assembleur();
+        batiments = new Batiments();
+        meteo = new Meteo(terrain);
+        ciel = new Ciel(terrain);
+        traces = new Traces();
+        rues = new Rues();
+        chargement.commencer();
+    }
+
+    private boolean accessible(double x, double y, double z) {
+        terrain.echantillonner(x, y, z, 11, point);
+        return Personnage.profondeur(point) == 0f;
+    }
+
+    void teleporter(double x, double y, double z) {
+        double[] d = { x, y, z };
+        Random r = new Random(Double.doubleToLongBits(x * 31.0 + y));
+        double lon0 = Math.atan2(y, x), lat0 = Math.asin(Math.max(-1.0, Math.min(1.0, z)));
+        boolean trouve = false;
+        for (int k = 0; k < 6000 && !trouve; k++) {
+            double ecart = k == 0 ? 0.0 : 0.00002 * (1 + k / 50);
+            double lat = lat0 + (r.nextDouble() - 0.5) * ecart, lon = lon0 + (r.nextDouble() - 0.5) * ecart;
+            d[0] = Math.cos(lat) * Math.cos(lon);
+            d[1] = Math.cos(lat) * Math.sin(lon);
+            d[2] = Math.sin(lat);
+            trouve = accessible(d[0], d[1], d[2]);
         }
+        if (!trouve) return;
+        camera.longitude = Math.atan2(d[1], d[0]);
+        camera.latitude = Math.asin(d[2]);
+        camera.rayonPixels = ZOOM_JEU;
+        traces.effacer();
+        personnages.remove(joueur);
+        joueur = null;
+        placerJoueur();
+        chargement.commencer();
+    }
+
+    void teleporterSouris() {
+        double qx = (Gdx.input.getX() - Gdx.graphics.getWidth() / 2.0) / camera.rayonPixels;
+        double qy = (Gdx.graphics.getHeight() / 2.0 - Gdx.input.getY()) / camera.rayonPixels / (tuiles != null && camera.rayonPixels >= RAYON_TUILES ? tuiles.ecrasement() : 1.0);
+        double rv = tuiles != null && camera.rayonPixels >= RAYON_TUILES ? tuiles.rotation() : 0.0;
+        double rx = Math.cos(rv) * qx + Math.sin(rv) * qy, ry = -Math.sin(rv) * qx + Math.cos(rv) * qy;
+        qx = rx;
+        qy = ry;
+        double q2 = qx * qx + qy * qy;
+        if (q2 >= 1.0) return;
+        double cosLon = Math.cos(camera.longitude), sinLon = Math.sin(camera.longitude);
+        double cosLat = Math.cos(camera.latitude), sinLat = Math.sin(camera.latitude);
+        double qz = Math.sqrt(1.0 - q2);
+        double x = -sinLon * qx - sinLat * cosLon * qy + cosLat * cosLon * qz;
+        double y = cosLon * qx - sinLat * sinLon * qy + cosLat * sinLon * qz;
+        double z = cosLat * qy + sinLat * qz;
+        if (joueur != null && camera.rayonPixels >= RAYON_JOUEUR) {
+            if (!accessible(x, y, z)) return;
+            joueur.position[0] = x;
+            joueur.position[1] = y;
+            joueur.position[2] = z;
+            joueur.altitude = point.altitude;
+            joueur.profondeur = 0f;
+            joueur.dansHerbe = Personnage.herbe(terrain, x, y, z, point);
+            return;
+        }
+        teleporter(x, y, z);
+    }
+
+    void teleporterVille(boolean auHasard) {
+        if (histoire == null || terrain == null) return;
+        com.deldaran.politics.histoire.Villes v = histoire.population.villes;
+        int[] grandes = v.plusGrandes(40);
+        int choix = -1;
+        for (int k = 0; k < grandes.length; k++) {
+            int c = auHasard ? grandes[hasard.nextInt(grandes.length)] : grandes[k];
+            if (c >= 0) {
+                choix = c;
+                break;
+            }
+        }
+        if (choix < 0) return;
+        int c = v.caseDe[choix];
+        teleporter(monde.sphere.x[c], monde.sphere.y[c], monde.sphere.z[c]);
+    }
+
+    void teleporterBiome(int biome) {
+        if (terrain == null) return;
+        for (int k = 0; k < 40000; k++) {
+            double z = hasard.nextDouble() * 2.0 - 1.0, a = hasard.nextDouble() * 2.0 * Math.PI, r = Math.sqrt(1.0 - z * z);
+            double x = r * Math.cos(a), y = r * Math.sin(a);
+            terrain.echantillonner(x, y, z, 9, point);
+            if (point.altitude < 0.01f || point.riviere || point.lac) continue;
+            if (biome >= 0 && terrain.biome(x, y, z, point) != biome) continue;
+            teleporter(x, y, z);
+            return;
+        }
+    }
+
+    void teleporterRelief() {
+        if (terrain == null) return;
+        double meilleur = -1.0, bx = 0.0, by = 0.0, bz = 1.0, e = 80.0 / (Terrain.RAYON_KM * 1000.0);
+        for (int k = 0; k < 3000; k++) {
+            double z = hasard.nextDouble() * 2.0 - 1.0, a = hasard.nextDouble() * 2.0 * Math.PI, r = Math.sqrt(1.0 - z * z);
+            double x = r * Math.cos(a), y = r * Math.sin(a);
+            terrain.echantillonner(x, y, z, 11, point);
+            if (point.altitude < 0.3f || point.riviere || point.lac) continue;
+            float h = point.altitude;
+            double n = Math.sqrt(x * x + y * y);
+            terrain.echantillonner(x - y / n * e, y + x / n * e, z, 11, point);
+            float he = point.altitude;
+            terrain.echantillonner(x - z * x / n * e, y - z * y / n * e, z + n * e, 11, point);
+            float hn = point.altitude;
+            double pente = Math.hypot(he - h, hn - h);
+            if (pente > meilleur) {
+                meilleur = pente;
+                bx = x;
+                by = y;
+                bz = z;
+            }
+        }
+        if (meilleur > 0.0) teleporter(bx, by, bz);
+    }
+
+    private double accelerationMeteo() {
+        double proche = Math.log(camera.rayonPixels / 1.0e5) / Math.log(RAYON_JOUEUR / 1.0e5);
+        proche = Math.max(0.0, Math.min(1.0, proche));
+        return Meteo.ACCELERATION + (Meteo.ACCELERATION_LOCALE - Meteo.ACCELERATION) * proche;
+    }
+
+    private void dessinerTuiles() {
+        piloter(Gdx.graphics.getDeltaTime());
         errer(Gdx.graphics.getDeltaTime());
+        traces.mollesse = 0.6f + ciel.locale.neigeSol * 3f + Math.max(0f, ciel.locale.mouille - 0.3f) * 2.5f;
+        traces.comblement = ciel.locale.neige;
+        traces.villages = villages;
+        traces.mettreAJour(camera, personnages, Gdx.graphics.getDeltaTime());
+        tuiles.traces = traces.texture();
+        tuiles.traceX = traces.cameraX;
+        tuiles.traceY = traces.cameraY;
+        tuiles.mouille = ciel.locale.mouille;
+        tuiles.neigeSol = ciel.locale.neigeSol;
+        vegetation.vent = (float) Math.hypot(ciel.locale.ventEst, ciel.locale.ventNord) + ciel.locale.orage * 8f;
+        vegetation.neige = ciel.locale.neigeSol;
+        vegetation.ventEst = ciel.locale.ventEst;
+        vegetation.ventNord = ciel.locale.ventNord;
+        if (histoire != null) villages.mettreAJour(histoire.population, monde.sphere, terrain, camera);
+        rues.mettreAJour(camera, villages, tuiles.metresPixel(), tuiles.demiVueMetres());
+        tuiles.rues = rues;
         tuiles.dessiner(camera, true);
-        vegetation.dessiner(camera, tuiles, personnages, assembleur);
+        vegetation.joueur = joueur;
+        vegetation.dessiner(camera, tuiles, personnages, assembleur, villages, batiments);
 
     }
 
@@ -219,10 +419,12 @@ public class FirstScreen implements Screen {
             personnages.add(p);
         }
         errance = new float[personnages.size() * 3];
+        chargement.commencer();
     }
 
     private void errer(float delta) {
-        for (int k = 0; k < personnages.size(); k++) {
+         for (int k = 0; k < errance.length / 3; k++) {
+            if (personnages.get(k) == joueur) continue;
             errance[k * 3] -= delta;
             if (errance[k * 3] <= 0f) {
                 errance[k * 3] = 1f + hasard.nextFloat() * 3f;
@@ -230,8 +432,70 @@ public class FirstScreen implements Screen {
                 errance[k * 3 + 1] = choix == 0 ? 1f : choix == 1 ? -1f : 0f;
                 errance[k * 3 + 2] = choix == 2 ? 1f : choix == 3 ? -1f : 0f;
             }
-            personnages.get(k).deplacer(errance[k * 3 + 1] * 1.4 * delta, errance[k * 3 + 2] * 1.4 * delta, delta, terrain, point);
+            personnages.get(k).deplacer(errance[k * 3 + 1] * 1.4 * delta, errance[k * 3 + 2] * 1.4 * delta, delta, terrain, point, obstacles);
         }
+    }
+    private void piloter(float delta) {
+        boolean proche = camera.rayonPixels >= RAYON_JOUEUR;
+        if (proche && (joueur == null || Gdx.input.isKeyJustPressed(Input.Keys.J))) placerJoueur();
+        cameraController.libre = !proche || joueur == null;
+        if (cameraController.libre) return;
+        double est = 0.0, nord = 0.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) nord += 1.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) nord -= 1.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) est += 1.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) est -= 1.0;
+        double longueur = Math.sqrt(est * est + nord * nord);
+        if (longueur > 0.0) {
+            double vitesse = (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ? COURSE : MARCHE) * delta / longueur;
+            est *= vitesse;
+            nord *= vitesse;
+        }
+        double cr = Math.cos(Personnage.rotationVue), sr = Math.sin(Personnage.rotationVue);
+        double versEst = cr * est + sr * nord, versNord = -sr * est + cr * nord;
+        joueur.deplacer(versEst, versNord, delta, terrain, point, obstacles);
+        suivre();
+    }
+
+    void basculerMain(int[] main) {
+        if (joueur == null) return;
+        Tenue t = joueur.tenue();
+        int tenue = t.tenue(main);
+        int debut = 0;
+        if (tenue >= 0) {
+            t.ranger(tenue);
+            for (int k = 0; k < main.length; k++) if (main[k] == tenue) debut = k + 1;
+        }
+        for (int k = debut; k < main.length; k++) {
+            if (t.porte(main[k])) {
+                t.tenir(main[k]);
+                return;
+            }
+        }
+    }
+
+    void placerJoueur() {
+        double cosLat = Math.cos(camera.latitude);
+        double x = cosLat * Math.cos(camera.longitude), y = cosLat * Math.sin(camera.longitude), z = Math.sin(camera.latitude);
+        terrain.echantillonner(x, y, z, 11, point);
+        if (point.altitude < 0f || point.riviere || point.lac) return;
+        Joueur incarne = histoire != null ? histoire.joueur : null;
+        int espece = incarne != null && incarne.peuple() >= 0 ? incarne.peuple() : Peuple.HUMAIN;
+        long graine = incarne != null && incarne.identifiant() >= 0L ? incarne.identifiant() : 1L;
+        personnages.remove(joueur);
+        joueur = new Personnage(assembleur.tirer(graine, espece), x, y, z);
+        joueur.altitude = point.altitude;
+        joueur.dansHerbe = Personnage.herbe(terrain, x, y, z, point);
+        personnages.add(joueur);
+    }
+
+    void suivre() {
+        double cosLon = Math.cos(camera.longitude), sinLon = Math.sin(camera.longitude);
+        double cosLat = Math.cos(camera.latitude), sinLat = Math.sin(camera.latitude);
+        double[] p = joueur.position;
+        double est = -sinLon * p[0] + cosLon * p[1];
+        double nord = -sinLat * cosLon * p[0] - sinLat * sinLon * p[1] + cosLat * p[2];
+        camera.deplacerPixels(est * camera.rayonPixels, nord * camera.rayonPixels);
     }
 
     private void preparerFond() {
@@ -453,6 +717,53 @@ public class FirstScreen implements Screen {
             byte biome = BIOMES_FERTILES[i];
             reglerRegion(fertilite, NOMS_BIOMES[i], 0f, 1f, 0.05f, r.fertilite[biome], v -> r.fertilite[biome] = v);
         }
+        FenetreDebug.Section sectionMeteo = fenetreDebug.ajouterSection("Meteo");
+        sectionMeteo.ajouterInfo("Mode (O)", () -> meteo == null ? "-" : Meteo.FORCAGES[meteo.forcage]);
+        sectionMeteo.ajouterInfo("Temps", () -> meteo == null || !meteo.pret() ? "calcul..." : String.format("jour %d, %02dh%02d ici (H : +3h)", (int) (meteo.heures() / 24), (int) meteo.heureLocale(camera.longitude), (int) (meteo.heureLocale(camera.longitude) % 1.0 * 60.0)));
+        sectionMeteo.ajouterInfo("Ici", () -> ciel == null ? "-" : String.format("%.0f C, nuages %.0f%%, pluie %.0f%%, neige %.0f%%, brouillard %.0f%%",
+            ciel.locale.temperature, ciel.locale.nuage * 100f, ciel.locale.pluie * 100f, ciel.locale.neige * 100f, ciel.locale.brouillard * 100f));
+        sectionMeteo.ajouterInfo("Sol", () -> ciel == null ? "-" : String.format("mouille %.0f%%, neige %.0f%%", ciel.locale.mouille * 100f, ciel.locale.neigeSol * 100f));
+        sectionMeteo.ajouterInfo("Vent", () -> ciel == null ? "-" : String.format("%.1f m/s", Math.hypot(ciel.locale.ventEst, ciel.locale.ventNord)));
+
+        FenetreDebug.Section sectionVoyage = fenetreDebug.ajouterSection("Teleportation");
+        sectionVoyage.ajouterInfo("T", () -> "joueur sous la souris");
+        sectionVoyage.ajouterBouton("Plus grande ville", () -> teleporterVille(false));
+        sectionVoyage.ajouterBouton("Ville au hasard", () -> teleporterVille(true));
+        sectionVoyage.ajouterBouton("Lieu au hasard", () -> teleporterBiome(-1));
+        sectionVoyage.ajouterBouton("Foret", () -> teleporterBiome(Biome.FORET));
+        sectionVoyage.ajouterBouton("Jungle", () -> teleporterBiome(Biome.JUNGLE));
+        sectionVoyage.ajouterBouton("Taiga", () -> teleporterBiome(Biome.TAIGA));
+        sectionVoyage.ajouterBouton("Prairie", () -> teleporterBiome(Biome.PRAIRIE));
+        sectionVoyage.ajouterBouton("Savane", () -> teleporterBiome(Biome.SAVANE));
+        sectionVoyage.ajouterBouton("Desert", () -> teleporterBiome(Biome.DESERT));
+        sectionVoyage.ajouterBouton("Toundra", () -> teleporterBiome(Biome.TOUNDRA));
+        sectionVoyage.ajouterBouton("Montagne", () -> teleporterBiome(Biome.MONTAGNE));
+        sectionVoyage.ajouterBouton("Relief escarpe", () -> teleporterRelief());
+
+        FenetreDebug.Section sectionGens = fenetreDebug.ajouterSection("Personnages");
+        sectionGens.ajouterInfo("Nombre", () -> String.valueOf(personnages.size()));
+        sectionGens.ajouterInfo("Joueur", () -> joueur == null ? "-" : joueur.profondeur > 0f ? String.format("dans l'eau (%.1f m)", joueur.profondeur) : joueur.dansHerbe ? "dans l'herbe" : "au sol");
+        sectionGens.ajouterBouton("Ajouter 30 habitants", () -> { if (terrain != null) peupler(); });
+        sectionGens.ajouterBouton("Effacer les habitants", () -> {
+            personnages.clear();
+            if (joueur != null) personnages.add(joueur);
+            errance = new float[personnages.size() * 3];
+        });
+        sectionGens.ajouterBouton("Replacer le joueur (J)", () -> { if (terrain != null) placerJoueur(); });
+        sectionGens.ajouterBouton("Habiller / deshabiller le joueur", () -> { if (joueur != null) joueur.nu = !joueur.nu; });
+        sectionGens.ajouterInfo("Coiffure", () -> joueur == null ? "-" : Traits.NOMS_COUPES[joueur.traits().coupe] + String.format(" %.0f cm", joueur.traits().cheveux));
+        sectionGens.ajouterInfo("Barbe", () -> joueur == null ? "-" : Traits.NOMS_BARBES[joueur.traits().barbe] + String.format(" %.1f cm", joueur.traits().longueurBarbe));
+        sectionGens.ajouterInfo("Expression", () -> joueur == null ? "-" : Traits.NOMS_EXPRESSIONS[joueur.traits().expression]);
+        sectionGens.ajouterBouton("Changer de coiffure", () -> { if (joueur != null) joueur.traits().coupe = (joueur.traits().coupe + 1) % Traits.COUPES; });
+        sectionGens.ajouterBouton("Changer de barbe", () -> { if (joueur != null) joueur.traits().barbe = (joueur.traits().barbe + 1) % Traits.BARBES; });
+        sectionGens.ajouterBouton("Laisser pousser 3 mois", () -> { if (joueur != null) joueur.traits().pousser(90.0, false); });
+        sectionGens.ajouterBouton("Couper les cheveux / raser", () -> { if (joueur != null) { joueur.traits().couper(4.0); joueur.traits().raser(); } });
+        sectionGens.ajouterBouton("Changer d'expression", () -> { if (joueur != null) joueur.traits().expression = (joueur.traits().expression + 1) % Traits.EXPRESSIONS; });
+        sectionGens.ajouterBouton("Changer d'habits", () -> { if (joueur != null) joueur.habits = Tenue.tirer(hasard.nextLong(), joueur.apparence.femme, joueur.apparence.enfant); });
+        sectionGens.ajouterBouton("Sortir / ranger arme droite", () -> basculerMain(Tenue.MAIN_DROITE));
+        sectionGens.ajouterBouton("Sortir / ranger objet gauche", () -> basculerMain(Tenue.MAIN_GAUCHE));
+        sectionGens.ajouterBouton("Effacer les traces", () -> { if (traces != null) traces.effacer(); });
+
         FenetreDebug.Section sectionJoueur = fenetreDebug.ajouterSection("Joueur");
         sectionJoueur.ajouterBouton("Entrer dans le monde", () -> {
             if (histoire != null) jouer(histoire.joueur::ouvrir);
@@ -509,7 +820,7 @@ public class FirstScreen implements Screen {
         for (int rang = 0; rang < 6; rang++) {
             ajouterFait(sectionChronique, rang);
         }
-        
+
         FenetreDebug.Section sectionFamilles = sectionHistoire.ajouterSection("Familles");
         infoHistoire(sectionFamilles, "Maisons", () -> String.valueOf(histoire.population.maisons.nombre));
         infoHistoire(sectionFamilles, "Regnes", () -> String.valueOf(histoire.population.maisons.nombreRegnes));
@@ -546,7 +857,7 @@ public class FirstScreen implements Screen {
         sectionEconomie.ajouterSlider("Cout mer", 0.01f, 0.3f, 0.01f, e.coutMer, v -> e.coutMer = v);
         sectionEconomie.ajouterSlider("Emplois du commerce", 0f, 3f, 0.1f, e.emplois, v -> e.emplois = v);
         sectionEconomie.ajouterSlider("Part urbaine du commerce", 0f, 0.9f, 0.05f, e.partCommerce, v -> e.partCommerce = v);
-        
+
         for (int g = 0; g < Economie.NOMBRE; g++) {
             ajouterMarchandise(sectionEconomie, g);
         }
@@ -620,7 +931,7 @@ public class FirstScreen implements Screen {
         infoHistoire(section, "Urbains", () -> String.valueOf(histoire.population.urbainsPeuple[q]));
         infoHistoire(section, "Age au deces", () -> String.format("%.0f ans", histoire.population.ageAuDeces[q]));
         section.ajouterSlider("Mobilite", 0f, 2f, 0.1f, peuple.mobilite, v -> peuple.mobilite = v);
-        section.ajouterSlider("Part urbaine", 0f, 1f, 0.05f, peuple.urbain, v -> peuple.urbain = v);        
+        section.ajouterSlider("Part urbaine", 0f, 1f, 0.05f, peuple.urbain, v -> peuple.urbain = v);
         reglerDepart(section, "Rythme de vie", 0.05f, 2f, 0.05f, peuple.rythme, v -> peuple.rythme = v);
         reglerDepart(section, "Annee d'eveil", 0f, 4000f, 100f, peuple.eveil, v -> peuple.eveil = v.intValue());
         reglerDepart(section, "Berceaux", 1f, 6f, 1f, peuple.berceaux, v -> peuple.berceaux = v.intValue());
@@ -683,7 +994,13 @@ public class FirstScreen implements Screen {
         if (tuiles != null) tuiles.dispose();
         if (vegetation != null) vegetation.dispose();
         if (assembleur != null) assembleur.dispose();
+        if (batiments != null) batiments.dispose();
+        if (meteo != null) meteo.dispose();
+        if (ciel != null) ciel.dispose();
+        if (traces != null) traces.dispose();
+        if (rues != null) rues.dispose();
         fenetreDebug.dispose();
+        chargement.dispose();
         arreterHistoire();
     }
 }

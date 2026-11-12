@@ -17,7 +17,24 @@ uniform float u_densite;
 uniform float u_plat;
 uniform float u_temps;
 uniform float u_maree;
-uniform float u_palier;
+uniform float u_mode;
+uniform float u_referenceMetres;
+uniform vec2 u_rotation;
+uniform float u_mouille;
+uniform float u_neigeSol;
+uniform sampler2D u_traces;
+uniform vec2 u_traceCamera;
+uniform sampler2D u_rues;
+uniform vec2 u_rueCamera;
+uniform sampler2D u_rueSol;
+uniform float u_rueTexel;
+uniform float u_rueBase;
+uniform float u_rueActif;
+uniform vec3 u_microFrac;
+uniform vec3 u_microBase;
+uniform vec3 u_microBase2;
+uniform vec3 u_est;
+uniform vec3 u_nord;
 
 
 varying vec2 v_texture;
@@ -33,10 +50,16 @@ const float HOULE = 0.15;
 const float DEPASSE = 0.15;
 const float VITESSE_RIVIERE = 1.5;
 const float ESTUAIRE = 2.5;
-const float TOUFFE = 5.0;
+const float TOUFFE = 9.0;
 const float VIDE_HERBE = 0.12;
 const float SEUIL_HERBE = 0.8;
-const float PALIER = 10.0;
+const float REFERENCE_HERBE = 0.0468;
+const float FINESSE_MIN = 0.35;
+const float TEXEL_TRACE = 0.09;
+const float TAILLE_RUE = 1024.0;
+const float PIERRE_RUE = 4.0;
+const float CELLULE_MICRO = 12.0;
+const float AMPLITUDE_MICRO = 4.0;
 
 float mod289(float x) {
     return x - floor(x / 289.0) * 289.0;
@@ -52,6 +75,24 @@ float hasard(vec2 n) {
 
 float hasard3(vec3 n) {
     return permute(permute(permute(mod289(n.x)) + mod289(n.y)) + mod289(n.z)) / 288.0;
+}
+
+float bruitMicro(vec3 c, vec3 base) {
+    vec3 i = floor(c);
+    vec3 f = c - i;
+    vec3 a = vec3(mod289(base.x + i.x), mod289(base.y + i.y), mod289(base.z + i.z));
+    vec3 b = vec3(mod289(a.x + 1.0), mod289(a.y + 1.0), mod289(a.z + 1.0));
+    vec3 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    float x00 = mix(hasard3(vec3(a.x, a.y, a.z)), hasard3(vec3(b.x, a.y, a.z)), u.x);
+    float x10 = mix(hasard3(vec3(a.x, b.y, a.z)), hasard3(vec3(b.x, b.y, a.z)), u.x);
+    float x01 = mix(hasard3(vec3(a.x, a.y, b.z)), hasard3(vec3(b.x, a.y, b.z)), u.x);
+    float x11 = mix(hasard3(vec3(a.x, b.y, b.z)), hasard3(vec3(b.x, b.y, b.z)), u.x);
+    return mix(mix(x00, x10, u.y), mix(x01, x11, u.y), u.z);
+}
+
+float micro(vec2 decalage) {
+    vec3 c = u_microFrac + (u_est * decalage.x + u_nord * decalage.y) / CELLULE_MICRO;
+    return 0.72 * bruitMicro(c, u_microBase) + 0.28 * bruitMicro(c * 3.0, u_microBase2);
 }
 
 
@@ -105,25 +146,29 @@ vec2 worley(vec2 p, float t) {
 }
 
 
-float brin(vec2 n) {
+float brin(vec2 n, float ecrase, float arrache) {
     float devant = 1e9;
     float hauteur = -1.0;
-    vec2 c0 = floor(n / TOUFFE);
+    float finesse = max(REFERENCE_HERBE / u_metresPixel, FINESSE_MIN);
+    float touffe = TOUFFE * finesse;
+    vec2 c0 = floor(n / touffe);
     for (int j = 0; j <= 2; j++) {
         for (int i = -1; i <= 1; i++) {
             vec2 c = c0 + vec2(float(i), -float(j));
             if (hasard(c + vec2(9.0, 41.0)) < VIDE_HERBE) continue;
-            vec2 centre = floor(c * TOUFFE + vec2(hasard(c + vec2(17.0, 31.0)), hasard(c + vec2(71.0, 5.0))) * TOUFFE);
+            vec2 centre = floor(c * touffe + vec2(hasard(c + vec2(17.0, 31.0)), hasard(c + vec2(71.0, 5.0))) * touffe);
             float vent = 0.7 * sin(u_temps * 1.7 + centre.x * 0.13 + centre.y * 0.07);
-            for (int b = 0; b < 5; b++) {
-                float o = float(b) - 2.0;
+            for (int b = 0; b < 7; b++) {
+                float o = float(b) - 3.0;
                 float h = hasard(c + vec2(3.0 + float(b) * 11.0, 97.0));
-                vec2 racine = centre + vec2(o, floor(h * 2.0));
-                float longueur = 2.0 + floor(h * 3.0) + 2.0 - abs(o);
+                if (hasard(c + vec2(59.0 + float(b) * 7.0, 13.0)) < arrache) continue;
+                vec2 racine = centre + vec2(floor(o * 1.5 * finesse), floor(h * 3.0 * finesse));
+                float longueur = (4.0 + floor(h * 5.0) + 2.0 * (3.0 - abs(o))) * finesse;
+                longueur = max(1.0, floor(longueur * (1.0 - 0.8 * ecrase)));
                 float k = n.y - racine.y;
                 if (k < 0.0 || k >= longueur) continue;
                 float penche = o * 0.7 + (h - 0.5) * 0.8 + vent;
-                float x = racine.x + floor(penche * k / longueur + 0.5);
+                float x = racine.x + floor(penche * finesse * k / longueur + 0.5);
                 if (abs(n.x - x) > 0.5) continue;
                 if (racine.y < devant) {
                     devant = racine.y;
@@ -141,6 +186,26 @@ vec2 coin(vec2 uv) {
 
 float altitudeEn(vec2 uv) {
     return texture2D(u_donnees, coin(uv)).r;
+}
+
+vec3 solRue(vec2 uv) {
+    vec2 c = uv * TAILLE_RUE - 0.5;
+    vec2 i = floor(c);
+    vec2 f = c - i;
+    float somme = 0.0;
+    float sommeH = 0.0;
+    float rigole = 0.0;
+    for (int k = 0; k < 4; k++) {
+        vec2 o = vec2(mod(float(k), 2.0), floor(float(k) / 2.0));
+        vec4 t = texture2D(u_rueSol, (i + o + 0.5) / TAILLE_RUE);
+        vec2 b = mix(1.0 - f, f, o);
+        float w = b.x * b.y * t.b;
+        float h = (floor(t.r * 255.0 + 0.5) * 256.0 + floor(t.g * 255.0 + 0.5)) / 64.0 - 512.0;
+        somme += w;
+        sommeH += w * h;
+        rigole += b.x * b.y * t.a;
+    }
+    return vec3(somme > 0.0 ? sommeH / somme + u_rueBase : 0.0, somme, rigole);
 }
 
 vec3 materiau(float altitude, float temperature, float pluie, float eau, vec4 couverture, float g, float pente, float niveau) {
@@ -203,6 +268,40 @@ void main() {
     vec2 dx = dFdx(v_texture);
     vec2 dy = dFdy(v_texture);
     vec2 pente = vec2(hu * dx.x + hv * dx.y, hu * dy.x + hv * dy.y) * 1000.0 / u_metresPixel;
+    float bosse = 0.0;
+    float rocheux = smoothstep(0.5, 1.1, d.r - u_plaines);
+    if (rocheux > 0.0 && d.a < 0.5 && u_metresPixel < 4.0 && u_plat > 0.99) {
+        vec2 ici = (gl_FragCoord.xy - u_centre) * u_metresPixel;
+        float amplitude = AMPLITUDE_MICRO * rocheux;
+        float h0 = micro(ici);
+        bosse = amplitude * h0;
+        vec2 gradient = vec2(micro(ici + vec2(0.3, 0.0)) - h0, micro(ici + vec2(0.0, 0.3)) - h0) * amplitude / 0.3;
+        pente += gradient * clamp((4.0 - u_metresPixel) / 2.0, 0.0, 1.0);
+    }
+    vec2 uvRue = vec2(-1.0);
+    vec3 aplani = vec3(0.0);
+    vec4 rue = vec4(0.0);
+    bool surEau = d.a > 0.5 || d.r * 1000.0 < u_maree;
+    if (u_rueActif > 0.5) {
+        vec2 o = (gl_FragCoord.xy - u_centre) * u_metresPixel;
+        uvRue = (u_rueCamera + vec2(u_rotation.x * o.x + u_rotation.y * o.y, -u_rotation.y * o.x + u_rotation.x * o.y)) / (u_rueTexel * TAILLE_RUE) + 0.5;
+        if (uvRue.x > 0.0 && uvRue.y > 0.0 && uvRue.x < 1.0 && uvRue.y < 1.0) {
+            aplani = solRue(uvRue);
+            rue = texture2D(u_rues, uvRue);
+            if (surEau && rue.a > 0.02) aplani.y = 0.0;
+        } else uvRue = vec2(-1.0);
+    }
+    if (u_mode > 0.5) {
+        float sol = max(d.r * 1000.0, 0.0) + bosse;
+        if (aplani.y > 0.0) sol = mix(sol, aplani.x, aplani.y);
+        float code = floor((sol - u_referenceMetres) * 256.0 + 8388608.5);
+        code = clamp(code, 0.0, 16777215.0);
+        float r = floor(code / 65536.0);
+        float v = floor((code - r * 65536.0) / 256.0);
+        float b = code - r * 65536.0 - v * 256.0;
+        gl_FragColor = vec4(r / 255.0, v / 255.0, b / 255.0, 1.0);
+        return;
+    }
 
         float detail = clamp((2.0 - u_metresPixel) / 1.4, 0.0, 1.0);
     float vagues = clamp((12.0 - u_metresPixel) / 8.0, 0.0, 1.0);
@@ -215,11 +314,41 @@ void main() {
     }
 
     vec3 m = materiau(d.r, d.g, d.b, d.a, couverture, g, length(pente), niveau);
-    float lumiere = d.r < 0.0 || m.x == 13.0 ? 0.0 : clamp(-dot(pente, LUMIERE) * RELIEF, -2.5, 2.5);
+    if (m.x == 13.0 || m.x == 14.0) rue = vec4(0.0);
+    float frange = (hasard(floor(n / 2.0) + vec2(3.0, 41.0)) - 0.5) * 0.35;
+    bool pave = max(rue.g, rue.b) + frange > 0.5;
+    bool battue = !pave && rue.r + frange > 0.5;
+    if (pave) m = vec3(PIERRE_RUE, 3.6, 0.5);
+    else if (battue) m = vec3(3.0, 2.3, 0.6);
+    float lumiere = d.r < 0.0 || m.x == 13.0 ? 0.0 : clamp(-dot(pente, LUMIERE) * RELIEF, -2.5, 2.5) * (1.0 - aplani.y);
     float indice = m.y + (g - 0.5) * m.z * 2.0 + lumiere;
+    if (pave) {
+        vec2 w = worley(p / 0.32, 0.0);
+        indice += w.y - w.x < 0.12 ? -1.8 : (hasard(floor(p / 0.32) + vec2(9.0, 4.0)) - 0.5) * 0.9 + 0.3;
+    } else if (battue) {
+        indice += (hasard(floor(n / 3.0) + vec2(11.0, 5.0)) - 0.5) * 0.6 - rue.r * 0.3;
+    }
+    if ((pave || battue) && aplani.z > 0.35) {
+        bool fond = aplani.z > 0.75;
+        m.x = 5.0;
+        indice = fond ? 1.3 + (g - 0.5) * 0.6 : 3.3 + (hasard(floor(p / 0.25) + vec2(2.0, 8.0)) - 0.5) * 0.9;
+        if (fond && u_mouille > 0.15) {
+            m.x = 13.0;
+            indice = 3.0 + 1.5 * step(0.85, fract((p.x + p.y) * 0.6 - u_temps * 1.5));
+        }
+    }
+    vec3 trace = vec3(0.0);
+    if (u_metresPixel < 0.3) {
+        vec2 o = (gl_FragCoord.xy - u_centre) * u_metresPixel;
+        vec2 uv = (u_traceCamera + vec2(u_rotation.x * o.x + u_rotation.y * o.y, -u_rotation.y * o.x + u_rotation.x * o.y)) / (TEXEL_TRACE * 512.0) + 0.5;
+        if (uv.x > 0.0 && uv.y > 0.0 && uv.x < 1.0 && uv.y < 1.0) trace = texture2D(u_traces, uv).rgb;
+    }
+    float usure = trace.r * 1.2 + trace.b * 2.0 + trace.g * 0.5;
+    float ecrase = clamp(usure * 1.5, 0.0, 1.0);
+    float arrache = clamp((usure - 0.25) * 1.3, 0.0, 1.0);
     bool pre = m.x == 0.0 || m.x == 1.0 || m.x == 8.0 || m.x == 10.0 || m.x == 11.0;
     if (pre && u_metresPixel < SEUIL_HERBE && u_plat > 0.99) {
-        float h = brin(n);
+        float h = brin(n, ecrase, arrache);
         if (h >= 0.0) {
             indice = m.y + 0.2 + h * 2.4 + lumiere * 0.6 + (g - 0.5) * 0.6;
             if (h > 0.99 && hasard(n + vec2(131.0, 7.0)) < 0.025) {
@@ -228,6 +357,14 @@ void main() {
             }
         } else {
             indice = m.y - 1.4 + (g - 0.5) * 0.8 + lumiere * 0.4;
+        }
+    }
+
+    if (pre && usure > 0.1) {
+        indice -= min(usure, 1.0) * 0.7;
+        if (usure + (g - 0.5) * 0.25 + (hasard(floor(n / 3.0) + vec2(5.0, 77.0)) - 0.5) * 0.15 > 0.8) {
+            m.x = 2.0;
+            indice = 3.0 + (g - 0.5) * 1.2 + lumiere * 0.5;
         }
     }
 
@@ -273,7 +410,7 @@ void main() {
     if ((m.x == 13.0 || m.x == 14.0) && metres < niveau && niveau - metres < DEPASSE && u_metresPixel < SEUIL_HERBE && u_plat > 0.99) {
         vec3 sol = materiau(d.r, d.g, d.b, d.a, couverture, g, length(pente), -1000.0);
         if (sol.x == 0.0 || sol.x == 1.0 || sol.x == 8.0 || sol.x == 10.0 || sol.x == 11.0) {
-            float h = brin(n);
+            float h = brin(n, 0.0, 0.0);
             if (h > (niveau - metres) / DEPASSE) {
                 m = sol;
                 indice = sol.y + 0.2 + h * 2.4 + (g - 0.5) * 0.6;
@@ -283,13 +420,50 @@ void main() {
 
 
 
+    float eau = m.x == 13.0 || m.x == 14.0 ? 1.0 : 0.0;
+    if (surEau && eau > 0.5 && aplani.y > 0.02) {
+        if (aplani.y > 0.85) {
+            vec2 w = worley(p / 0.32, 0.0);
+            m.x = PIERRE_RUE;
+            indice = 3.6 + (g - 0.5) * 0.5 + (w.y - w.x < 0.12 ? -1.8 : (hasard(floor(p / 0.32) + vec2(9.0, 4.0)) - 0.5) * 0.9 + 0.3);
+        } else {
+            vec2 b = vec2(p.x / 0.6 + floor(p.y / 0.3) * 0.5, p.y / 0.3);
+            vec2 f = fract(b);
+            m.x = 5.0;
+            indice = f.x < 0.1 || f.y < 0.15 ? 1.6 : 3.0 + (hasard(floor(b) + vec2(21.0, 9.0)) - 0.5) * 1.0;
+        }
+        eau = 0.0;
+    }
+    float proche = clamp((3.0 - u_metresPixel) / 1.5, 0.0, 1.0) * u_plat;
+    if (eau == 0.0 && proche > 0.0) {
+        vec2 taches = worley(p / 4.0, 0.0);
+        if (u_neigeSol > 0.0 && u_neigeSol * 1.4 - taches.x * 0.9 - (g - 0.5) * 0.3 > 0.35) {
+            m.x = 6.0;
+            indice = 4.2 + (g - 0.5) * 1.2 + lumiere * 0.8 - trace.g * 2.2 - trace.r * 0.8;
+        } else if (u_mouille > 0.0) {
+            vec2 creux = worley(p / 3.0 + 17.0 + 0.22 * vec2(sin(p.y * 1.3 + p.x * 0.4), cos(p.x * 1.1 - p.y * 0.5)), 0.0);
+            float flaque = (u_mouille - 0.4) * (pre ? 0.22 : 0.4);
+            if (u_mouille > 0.4 && length(pente) < 0.3 && creux.x < flaque) {
+                m.x = 13.0;
+                indice = (creux.x > flaque * 0.7 ? 2.0 : 3.6) + (g - 0.5) * 0.6;
+            } else {
+                indice -= 1.1 * u_mouille + trace.g * 1.4 * u_mouille;
+                if (trace.r > 0.35 && u_mouille > 0.3) {
+                    m.x = 2.0;
+                    indice = 1.8 + (g - 0.5) * 0.8;
+                }
+            }
+        } else if (!pre) {
+            indice -= trace.g * 0.6;
+        }
+    }
+
     float colonne = clamp(floor(indice + 0.5), 0.0, 7.0);
     vec3 couleur = texture2D(u_palette, vec2((colonne + 0.5) / 8.0, (m.x + 0.5) / 16.0)).rgb;
     float ombre = mix(0.45, 1.0, sqrt(sqrt(1.0 - distance2)));
 
-    float palier = max(floor(metres / PALIER), 0.0);
-    float rang = clamp(palier - u_palier, -63.0, 63.0) + 64.0;
-    float eau = m.x == 13.0 || m.x == 14.0 ? 1.0 : 0.0;
-    gl_FragColor = vec4(couleur * ombre, (rang * 2.0 + eau) / 255.0);
+    vec3 sortie = couleur * ombre;
+    sortie.b = (floor(sortie.b * 127.5) * 2.0 + eau) / 255.0;
+    gl_FragColor = vec4(sortie, 1.0);
 
 }

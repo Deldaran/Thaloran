@@ -62,6 +62,13 @@ public class Joueur {
     private Savoir.Temoin moi() {
         return Savoir.temoin(p, foule(), place);
     }
+    public int peuple() {
+        return peuple;
+    }
+
+    public long identifiant() {
+        return id;
+    }
 
     public Scene ouvrir() {
         return enVie() ? accueil() : choisir();

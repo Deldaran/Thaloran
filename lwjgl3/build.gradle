@@ -57,6 +57,8 @@ run {
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
 // The next two jvmArgs additions help LWJGL3 on JDK 24 and higher.
+  jvmArgs += "-Xms2G"
+  jvmArgs += "-Xmx8G"
   jvmArgs += "--enable-native-access=ALL-UNNAMED"
   jvmArgs += "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED"
 // On macOS, we need to set this for the run task to allow debugging in IDEA or AS to work.

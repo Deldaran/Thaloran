@@ -28,7 +28,7 @@ public class AtelierTuile {
     }
 
     public void generer(Tuile tuile) {
-        FloatTextureData donnees = new FloatTextureData(LARGEUR, LARGEUR, GL30.GL_RGBA16F, GL20.GL_RGBA, GL20.GL_FLOAT, false);
+        FloatTextureData donnees = new FloatTextureData(LARGEUR, LARGEUR, GL30.GL_RGBA32F, GL20.GL_RGBA, GL20.GL_FLOAT, false);
         donnees.prepare();
         FloatBuffer valeurs = donnees.getBuffer();
         Pixmap couverture = new Pixmap(LARGEUR, LARGEUR, Pixmap.Format.RGBA8888);

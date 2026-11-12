@@ -8,22 +8,27 @@ public class CameraController extends InputAdapter {
     private static final double FACTEUR_ZOOM = 1.15;
 
     private final GameCamera camera;
+    public boolean libre = true;
 
     public CameraController(GameCamera camera) {
         this.camera = camera;
     }
 
     public void update(float delta) {
+        if (!libre) return;
         double pas = camera.vitessePixels * delta;
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.deplacerPixels(0, pas);
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.deplacerPixels(0, -pas);
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.deplacerPixels(-pas, 0);
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.deplacerPixels(pas, 0);
+        double x = 0.0, y = 0.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) y += 1.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) y -= 1.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) x -= 1.0;
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) x += 1.0;
+        double longueur = Math.hypot(x, y);
+        if (longueur > 0.0) camera.glisserEcran(x / longueur * pas, y / longueur * pas);
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        camera.deplacerPixels(-Gdx.input.getDeltaX(), Gdx.input.getDeltaY());
+        camera.glisserEcran(-Gdx.input.getDeltaX(), Gdx.input.getDeltaY());
         return true;
     }
 
