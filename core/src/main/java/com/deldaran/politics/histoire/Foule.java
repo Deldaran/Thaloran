@@ -64,6 +64,7 @@ public class Foule {
     private static final int RANG_MAX = 3;
     private static final int BONUS_NOBLE = 15;
     private static final long CLE_TALENT = 0x7A1E47L;
+    private static final long RESERVE = 1L << 39;
 
     public Foule(int region, int indicePeuple, Peuple peuple, int nombreRegions) {
         this.region = region;
@@ -502,8 +503,17 @@ public class Foule {
         return sexe[place];
     }
 
+    public int rangDe(int place) {
+        return rang[place];
+    }
+
     public int talentDe(int place) {
         return talent[place];
+    }
+
+    /** Phase 10 : le nombre de places (vivantes ou libres), pour parcourir la population. */
+    public int taille() {
+        return taille;
     }
 
     public int nobles() {
@@ -536,6 +546,107 @@ public class Foule {
 
     public byte bienDe(int place) {
         return bien[place];
+    }
+
+    public byte foiDe(int place) {
+        return foi[place];
+    }
+
+    public int conjointDe(int place) {
+        return conjoint[place];
+    }
+
+    public long pereDe(int place) {
+        return pere[place];
+    }
+
+    public long mereDe(int place) {
+        return mere[place];
+    }
+
+    public long idReserve(int numero) {
+        return (prefixe << 40) | RESERVE | numero;
+    }
+
+    private int lieuDe(int ville) {
+        if (ville < 0) return 0;
+        for (int l = 1; l < nombreLieux; l++) {
+            if (villes[l] == ville) return l;
+        }
+        return 0;
+    }
+
+    public int placeDe(long numero) {
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] != MORT && id[p] == numero) return p;
+        }
+        return -1;
+    }
+
+    public int inserer(long numero, long idPere, long idMere, int ne, int s, int[] caractere, int tal, int ville, int lignee, int rg) {
+        int p = nouvellePlace();
+        id[p] = numero;
+        pere[p] = idPere;
+        mere[p] = idMere;
+        conjoint[p] = -1;
+        naissance[p] = (short) ne;
+        sexe[p] = (byte) s;
+        loi[p] = (byte) caractere[0];
+        bien[p] = (byte) caractere[1];
+        ambition[p] = (byte) caractere[2];
+        courage[p] = (byte) caractere[3];
+        foi[p] = (byte) caractere[4];
+        talent[p] = (byte) tal;
+        maison[p] = lignee;
+        rang[p] = (byte) rg;
+        int l = lieuDe(ville);
+        lieu[p] = (short) l;
+        compte[l]++;
+        return p;
+    }
+
+    public void unir(int a, int b) {
+        if (a < 0 || b < 0) return;
+        conjoint[a] = b;
+        conjoint[b] = a;
+    }
+
+    public java.util.List<int[]> couples(int ville, int neMereMin, int neMereMax, int nePereMax, boolean nobles) {
+        int l = lieuDe(ville);
+        java.util.List<int[]> liste = new java.util.ArrayList<>();
+        if (l == 0) return liste;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || sexe[p] != FEMME || lieu[p] != l || conjoint[p] < 0) continue;
+            if (naissance[p] < neMereMin || naissance[p] > neMereMax) continue;
+            int c = conjoint[p];
+            if (naissance[c] == MORT || naissance[c] > nePereMax) continue;
+            if (nobles != (maison[c] >= 0 || maison[p] >= 0)) continue;
+            liste.add(new int[] { c, p });
+        }
+        return liste;
+    }
+
+    public java.util.List<Integer> gens(int ville, int neMin, int neMax, int voulu, boolean seuls) {
+        int l = lieuDe(ville);
+        java.util.List<Integer> liste = new java.util.ArrayList<>();
+        if (l == 0) return liste;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || lieu[p] != l) continue;
+            if (naissance[p] < neMin || naissance[p] > neMax) continue;
+            if (voulu >= 0 && sexe[p] != voulu) continue;
+            if (seuls && conjoint[p] >= 0) continue;
+            liste.add(p);
+        }
+        return liste;
+    }
+
+    public java.util.List<Integer> enfantsDe(long idPere, long idMere) {
+        java.util.List<Integer> liste = new java.util.ArrayList<>();
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT) continue;
+            if ((idPere >= 0 && pere[p] == idPere) || (idMere >= 0 && mere[p] == idMere)) liste.add(p);
+        }
+        return liste;
     }
 
     private void mourir(int p, int annee) {
@@ -578,6 +689,24 @@ public class Foule {
             tues++;
         }
         return tues;
+    }
+
+    public int abandonner(int ville) {
+        int lieuVille = -1;
+        for (int l = 1; l < nombreLieux; l++) {
+            if (villes[l] == ville) lieuVille = l;
+        }
+        if (lieuVille < 0) return 0;
+        int partis = 0;
+        for (int p = 0; p < taille; p++) {
+            if (naissance[p] == MORT || lieu[p] != lieuVille) continue;
+            compte[lieuVille]--;
+            compte[0]++;
+            lieu[p] = 0;
+            partis++;
+        }
+        tailles[lieuVille] = 0;
+        return partis;
     }
 
     public int urbains() {

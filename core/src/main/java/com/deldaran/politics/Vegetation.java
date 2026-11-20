@@ -31,6 +31,7 @@ public class Vegetation {
     private static final int ANCRE_PERSONNAGE = 2;
     private static final int ANCRE_MAISON = 2;
     private static final int MAISON = 1 << 20;
+    private static final int FEU = 1 << 26;
     private static final float QUAD_L = 10f, QUAD_H = 15f, ANCRE_ARBRE = 1f;
     public static final int VARIANTES = 4;
     private static final int PAS_ECRAN = 48;
@@ -45,6 +46,7 @@ public class Vegetation {
     private final ShaderProgram arbres;
     private final Texture palette;
     private final Peintre peintre;
+    private final Bulles bulles;
     private final SpriteBatch pinceau = new SpriteBatch();
 
     private final Map<Long, float[]> parcelles = new ConcurrentHashMap<>();
@@ -76,6 +78,8 @@ public class Vegetation {
     private Assembleur assembleur;
     private Batiments batiments;
     private Villages villages;
+    public Incendies incendies;
+    private float feuB, feuE, feuL;
 
     public Vegetation(Terrain terrain) {
         this.terrain = terrain;
@@ -97,6 +101,7 @@ public class Vegetation {
         }
         palette = new Texture(Gdx.files.internal("palettes/sol.png"));
         peintre = new Peintre();
+        bulles = new Bulles();
         pinceau.setBlendFunctionSeparate(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA, com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA, com.badlogic.gdx.graphics.GL20.GL_ZERO, com.badlogic.gdx.graphics.GL20.GL_ONE);
         ouvrier = new Thread(this::travailler, "vegetation");
         ouvrier.setDaemon(true);
@@ -199,6 +204,7 @@ public class Vegetation {
         parcellesManquantes = 0;
         personnagesManquants = 0;
         maisonsManquantes = 0;
+        if (incendies != null) incendies.masquer();
         if (metresEcran > METRES_ECRAN_MAX) return;
         image++;
         preparerVue(camera);
@@ -206,6 +212,10 @@ public class Vegetation {
         rotationVue = tuiles.rotation();
         ecrasement = tuiles.ecrasement();
         int largeur = Gdx.graphics.getBackBufferWidth(), hauteur = Gdx.graphics.getBackBufferHeight();
+        if (incendies != null) {
+            incendies.cadrer(est, nord, rayon, ecrasement, largeur, hauteur, metresEcran, tuiles);
+            incendies.front.dessinerSol();
+        }
         chercherParcelles(rayon, largeur, hauteur);
 
         float margeL = (float) (QUAD_L / metresEcran), margeH = (float) (QUAD_H / metresEcran);
@@ -219,11 +229,13 @@ public class Vegetation {
                 float sx = (float) (largeur / 2.0 + (x * est[0] + y * est[1] + z * est[2]) * rayon);
                 float sy = (float) (hauteur / 2.0 + (x * nord[0] + y * nord[1] + z * nord[2]) * rayon * ecrasement);
                 if (sx < -margeL || sx > largeur + margeL || sy < -margeH || sy > hauteur + margeL) continue;
-                if (villages.dansVillage(x, y, z)) continue;
+                if (villages.dansVillage(x, y, z) || villages.enClairiere(x, y, z) || villages.dansChamp(x, y, z)) continue;
+                int sorteArbre = brule((int) arbres[k + 3], x, y, z);
+                if (sorteArbre < 0) continue;
                 if (n == xs.length) agrandirTableaux();
                 xs[n] = sx;
                 ys[n] = sy + tuiles.decalage(x, y, z, arbres[k + 4]);
-                sortes[n] = (int) arbres[k + 3];
+                sortes[n] = sorteArbre;
                 phases[n] = (float) hasard(Double.doubleToLongBits(x * 7919.0 + y * 104729.0 + z), 6);
                 ordre[n] = ((long) (100000 - (int) sy) << 32) | n;
                 n++;
@@ -237,10 +249,12 @@ public class Vegetation {
             float sx = (float) (largeur / 2.0 + (x * est[0] + y * est[1] + z * est[2]) * rayon);
             float sy = (float) (hauteur / 2.0 + (x * nord[0] + y * nord[1] + z * nord[2]) * rayon * ecrasement);
             if (sx < -margeL || sx > largeur + margeL || sy < -margeH || sy > hauteur + margeL) continue;
+            int sortePlante = brule((int) plantes[k + 3], x, y, z);
+            if (sortePlante < 0) continue;
             if (n == xs.length) agrandirTableaux();
             xs[n] = sx;
             ys[n] = sy + tuiles.decalage(x, y, z, plantes[k + 4]);
-            sortes[n] = (int) plantes[k + 3];
+            sortes[n] = sortePlante;
             phases[n] = (float) hasard(Double.doubleToLongBits(x * 7919.0 + y * 104729.0 + z), 6);
             ordre[n] = ((long) (100000 - (int) sy) << 32) | n;
             n++;
@@ -257,7 +271,7 @@ public class Vegetation {
             xs[n] = sx;
             ys[n] = sy + (p.profondeur > 0f ? tuiles.decalage(p.altitude) : tuiles.decalage(x, y, z, tuiles.altitudeSol(x, y, z)));
             sortes[n] = -1 - k;
-            ordre[n] = ((long) (100000 - (int) sy) << 32) | n;
+            ordre[n] = ((long) (100000 - (int) sy + (p.hauteurPortee > 0.0 ? 1 : 0)) << 32) | n;
             n++;
         }
         for (int k = 0; k < villages.nombre; k++) {
@@ -277,6 +291,17 @@ public class Vegetation {
             ordre[n] = ((long) (100000 - (int) (sy + recul)) << 32) | n;
 
             n++;
+        }
+        if (incendies != null && incendies.ancre()) {
+            Flammes flammes = incendies.front.flammes;
+            for (int j = 0; j < flammes.bandes; j++) {
+                if (n == xs.length) agrandirTableaux();
+                xs[n] = 0f;
+                ys[n] = flammes.profondeur(j);
+                sortes[n] = FEU + j;
+                ordre[n] = ((long) (100000 - flammes.profondeur(j)) << 32) | n;
+                n++;
+            }
         }
         Arrays.sort(ordre, 0, n);
 
@@ -306,9 +331,68 @@ public class Vegetation {
         oublier();
     }
 
+    private int brule(int sorte, double x, double y, double z) {
+        if (incendies == null || !incendies.front.present()) return sorte;
+        if (incendies.front.etat(x, y, z) != Front.CENDRE) return sorte;
+        int type = sorte / VARIANTES;
+        if (type == BUISSON) return -1;
+        if (type == ROCHER || type == MORT) return sorte;
+        return MORT * VARIANTES + sorte % VARIANTES;
+    }
+
+    public float[] arbresAutour(double x, double y, double z, double rayonMetres) {
+        double r = rayonMetres / RAYON_METRES, large = (rayonMetres + 250.0) / RAYON_METRES;
+        float[] sortie = new float[64];
+        int n = 0;
+        for (float[] a : parcelles.values()) {
+            if (a.length < 5) continue;
+            double dx = a[0] - x, dy = a[1] - y, dz = a[2] - z;
+            if (dx * dx + dy * dy + dz * dz > large * large) continue;
+            for (int k = 0; k + 4 < a.length; k += 5) {
+                dx = a[k] - x;
+                dy = a[k + 1] - y;
+                dz = a[k + 2] - z;
+                if (dx * dx + dy * dy + dz * dz > r * r) continue;
+                if (n + 4 > sortie.length) sortie = Arrays.copyOf(sortie, sortie.length * 2);
+                sortie[n++] = a[k];
+                sortie[n++] = a[k + 1];
+                sortie[n++] = a[k + 2];
+                sortie[n++] = a[k + 3];
+            }
+        }
+        return Arrays.copyOf(sortie, n);
+    }
+
+    private void tracerFeu(int i, int j) {
+        if (modeArbres) {
+            pinceau.setShader(agrandir);
+            regler(echelleSprite);
+            courante = null;
+            modeArbres = false;
+        }
+        Flammes flammes = incendies.front.flammes;
+        Texture palette = flammes.palette();
+        if (palette == null) return;
+        if (palette != courante || feuB != 0f || feuE != 0f || feuL != 0f) {
+            pinceau.flush();
+            agrandir.setUniformf("u_echelle", flammes.cote());
+            agrandir.setUniformf("u_taille", palette.getWidth(), palette.getHeight());
+            agrandir.setUniformf("u_case", palette.getWidth(), palette.getHeight());
+            agrandir.setUniformf("u_feu", 0f, 0f, 0f);
+            feuB = feuE = feuL = 0f;
+            courante = palette;
+        }
+        pinceau.setColor(0f, 0f, 0f, 1f);
+        flammes.tracer(pinceau, j);
+    }
+
     private void tracer(int i, boolean seconde) {
         int sorte = sortes[i];
         float e = echelleSprite;
+        if (sorte >= FEU) {
+            if (!seconde) tracerFeu(i, sorte - FEU);
+            return;
+        }
         if (sorte >= 0 && sorte < MAISON) {
             if (!modeArbres) {
                 pinceau.setShader(arbres);
@@ -336,13 +420,36 @@ public class Vegetation {
             courante = null;
             modeArbres = false;
         }
+        Incendies.Foyer feu = sorte >= MAISON && incendies != null ? incendies.foyer(villages, sorte - MAISON) : null;
+        float fb = feu == null ? 0f : feu.brule, fe = feu == null ? 0f : feu.effondre, fl = feu == null ? 0f : feu.lueur;
+        if (fb != feuB || fe != feuE || fl != feuL) {
+            pinceau.flush();
+            agrandir.setUniformf("u_feu", fb, fe, fl);
+            feuB = fb;
+            feuE = fe;
+            feuL = fl;
+        }
         Personnage perso = sorte < 0 ? personnages.get(-1 - sorte) : null;
-        Batiments.Image maison = sorte >= MAISON ? batiments.image(villages.plans[sorte - MAISON]) : null;
+        Batiments.Image maison = null;
+        if (feu != null && feu.abattu()) {
+            maison = batiments.image(feu.planRuine());
+            if (maison != null && (feuB != 0f || feuE != 0f || feuL != fl)) {
+                pinceau.flush();
+                agrandir.setUniformf("u_feu", 0f, 0f, fl);
+                feuB = 0f;
+                feuE = 0f;
+                feuL = fl;
+            }
+        }
+        if (sorte >= MAISON && maison == null) maison = batiments.image(villages.plans[sorte - MAISON]);
         if (sorte >= MAISON && maison == null) {
             maisonsManquantes++;
             return;
         }
-        Texture texture = sorte >= MAISON ? maison.texture : perso != null ? (perso.peint ? peintre.texture(perso.apparence, perso.tenue(), perso.traits()) : assembleur.texture(perso.apparence)) : planche;
+        Animations.Animation anim = perso != null && perso.peint ? perso.animation : null;
+        Texture texture = anim != null ? peintre.texture(perso.apparence, perso.tenue(), perso.traits(), anim, perso.direction) : null;
+        if (texture == null) anim = null;
+        if (texture == null) texture = sorte >= MAISON ? maison.texture : perso != null ? (perso.peint ? peintre.texture(perso.apparence, perso.tenue(), perso.traits()) : assembleur.texture(perso.apparence)) : planche;
         if (texture == null) {
             if (perso != null) personnagesManquants++;
             return;
@@ -353,7 +460,7 @@ public class Vegetation {
             pinceau.flush();
             agrandir.setUniformf("u_echelle", ep);
             agrandir.setUniformf("u_taille", texture.getWidth(), texture.getHeight());
-            agrandir.setUniformf("u_case", sorte >= MAISON ? texture.getWidth() : peint ? Peintre.L : CASE_L, sorte >= MAISON ? texture.getHeight() : peint ? Peintre.H : CASE_H);
+            agrandir.setUniformf("u_case", sorte >= MAISON ? texture.getWidth() : anim != null ? Peintre.AL : peint ? Peintre.L : CASE_L, sorte >= MAISON ? texture.getHeight() : anim != null ? Peintre.AH : peint ? Peintre.H : CASE_H);
             courante = texture;
         }
         if (sorte >= MAISON) {
@@ -365,18 +472,20 @@ public class Vegetation {
         }
         if (sorte < 0) {
             Personnage p = perso;
-            int l = p.peint ? Peintre.L : Assembleur.L, h = p.peint ? Peintre.H : Assembleur.H;
+            int l = anim != null ? Peintre.AL : p.peint ? Peintre.L : Assembleur.L, h = anim != null ? Peintre.AH : p.peint ? Peintre.H : Assembleur.H;
             int ancre = p.peint ? Peintre.ANCRE : ANCRE_PERSONNAGE;
-            int sx = p.peint ? (p.image() % Assembleur.PAS) * l : p.image() * l;
-            int sy = p.peint ? p.direction * h : 0;
+            int sx = anim != null ? p.imageAnimation() * l : p.peint ? (p.image() % Assembleur.PAS) * l : p.image() * l;
+            int sy = anim != null ? 0 : p.peint ? p.direction * h : 0;
             int herbe = p.peint ? 0 : h;
             if (p.peint) pinceau.setColor((-sorte * 0.618f) % 1f, 0f, p.dansHerbe && p.profondeur <= 0f ? 1f : 0.6f, 1f);
             else pinceau.setColor(0f, 0f, 0f, 1f);
             float x = Math.round(xs[i] - l / 2f * ep);
-            float y = Math.round(ys[i] - ancre * ep);
+            float y = Math.round(ys[i] - ancre * ep + (float) (p.hauteurPortee / Peintre.METRES_PIXEL) * ep);
             retenir(i, x, y, l * ep, h * ep);
             if (p.profondeur <= 0f) {
                 pinceau.draw(texture, x, y, l * ep, h * ep, sx, sy + (p.dansHerbe ? herbe : 0), l, h, false, false);
+                String nomBulle = p.bulleReste > 0f ? p.bulle : anim != null && (p.partenaire == null || p.meneur) ? anim.bulle : null;
+                if (nomBulle != null && !seconde) bulle(nomBulle, xs[i], y + ((anim != null ? peintre.sommet(texture, p.imageAnimation()) : p.apparence.enfant ? 62 : 84) + 3) * ep, ep);
                 return;
             }
             int cache = ancre + Math.min(h / 2, Math.round((float) (p.profondeur / (p.peint ? Peintre.METRES_PIXEL : METRES_SPRITE))));
@@ -399,6 +508,22 @@ public class Vegetation {
         retenir(i, x, y, CASE_L * e, CASE_H * e);
         pinceau.setColor(phases[i], SOUPLESSE[sorte / VARIANTES], 0f, 1f);
         pinceau.draw(planche, x, y, CASE_L * e, CASE_H * e, cx, cy, CASE_L, CASE_H, false, false);
+    }
+
+    private void bulle(String nom, float cx, float y, float ep) {
+        int k = bulles.indice(nom);
+        if (k < 0) return;
+        float e = Math.max(ep * 1.5f, echelleSprite);
+        int c = Bulles.CASE;
+        pinceau.flush();
+        agrandir.setUniformf("u_echelle", e);
+        agrandir.setUniformf("u_taille", bulles.texture.getWidth(), bulles.texture.getHeight());
+        agrandir.setUniformf("u_case", bulles.texture.getWidth(), bulles.texture.getHeight());
+        pinceau.setColor(0f, 0f, 0f, 1f);
+        float saut = Math.round((float) Math.sin(temps * 4f) * 1.5f) * e;
+        pinceau.draw(bulles.texture, Math.round(cx - c / 2f * e), Math.round(y + saut), c * e, c * e, k * c, 0, c, c, false, false);
+        pinceau.flush();
+        courante = null;
     }
 
     private void retenir(int i, float x, float y, float l, float h) {
@@ -461,6 +586,8 @@ public class Vegetation {
         agrandir.setUniformf("u_ventDir", cr * ve - sr * vn, sr * ve + cr * vn);
         agrandir.setUniformf("u_neige", neige);
         agrandir.setUniformf("u_masque", masque);
+        agrandir.setUniformf("u_feu", 0f, 0f, 0f);
+        feuB = feuE = feuL = 0f;
         if (ombreJoueur) agrandir.setUniformf("u_silhouette", 0.62f, 0.78f, 1f, 0.55f);
         else agrandir.setUniformf("u_silhouette", 0f, 0f, 0f, 0f);
     }
@@ -501,7 +628,7 @@ public class Vegetation {
                 int code = (int) arbres[i + 3];
                 int espece = code / VARIANTES;
                 double tronc = espece == ROCHER ? rayonRocher(arbres[i], arbres[i + 1], arbres[i + 2], code) * 0.95 : espece == BUISSON ? rayonBuisson(arbres[i], arbres[i + 1], arbres[i + 2], code) * 0.7 : TRONCS[espece];
-                if (tronc <= 0.0) continue;
+                if (tronc <= 0.0 || (villages != null && (villages.enClairiere(arbres[i], arbres[i + 1], arbres[i + 2]) || villages.dansChamp(arbres[i], arbres[i + 1], arbres[i + 2])))) continue;
                 double dx = (arbres[i] - px) * RAYON_METRES, dy = (arbres[i + 1] - py) * RAYON_METRES, dz = (arbres[i + 2] - pz) * RAYON_METRES;
                 double r = tronc + rayon;
                 if (dx * dx + dy * dy + dz * dz < r * r) return true;
@@ -611,6 +738,7 @@ public class Vegetation {
         agrandir.dispose();
         arbres.dispose();
         peintre.dispose();
+        bulles.dispose();
         palette.dispose();
         pinceau.dispose();
     }

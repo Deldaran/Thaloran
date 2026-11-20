@@ -67,13 +67,13 @@ vec4 cellule(vec2 p, float graine) {
 
 vec3 couleur(float rangee, float indice, vec2 a) {
     float colonne = clamp(floor(indice + (bayer4(a) - 0.5) * 0.6 + 0.5), 0.0, 7.0);
-    return texture2D(u_palette, vec2((colonne + 0.5) / 8.0, (rangee + 0.5) / 16.0)).rgb;
+    return texture2D(u_palette, vec2((colonne + 0.5) / 8.0, (rangee + 0.5) / 24.0)).rgb;
 }
 
 vec3 rampe(float indice, vec2 a) {
     float r = clamp(floor(indice + (bayer4(a) - 0.5) * 0.7 + 0.5), 0.0, 9.0);
-    if (r < 7.0) return texture2D(u_palette, vec2((r + 0.5) / 8.0, (OMBRES + 0.5) / 16.0)).rgb;
-    return texture2D(u_palette, vec2((r - 2.0 + 0.5) / 8.0, (LUMIERES + 0.5) / 16.0)).rgb;
+    if (r < 7.0) return texture2D(u_palette, vec2((r + 0.5) / 8.0, (OMBRES + 0.5) / 24.0)).rgb;
+    return texture2D(u_palette, vec2((r - 2.0 + 0.5) / 8.0, (LUMIERES + 0.5) / 24.0)).rgb;
 }
 
 vec4 chene(vec2 p, vec2 centre, float rayon, float graine, vec2 a, float amas, float teinte) {

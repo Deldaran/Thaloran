@@ -1,0 +1,1103 @@
+# Animations des personnages peints.
+# Angles en degres, positions en metres.
+# pose NOM reglages...                      : pose nommee reutilisable
+# anim NOM categorie images duree mode [options] puis des lignes "temps pose+pose reglages"
+#   mode : boucle, unefois, tenir (joue une fois puis garde la derniere image)
+#   options : mobile (jouee en marchant), partenaire=NOM, distance=M, placement=face|cote|dessus, bulle=NOM, md=objet, mg=objet, visage=NOM
+# reglages : corps.x corps.y corps.z corps.tangage corps.roulis corps.lacet buste.tangage buste.roulis buste.lacet
+#            tete.tangage tete.roulis tete.lacet bd.leve bd.ecarte bd.coude bd.croise bd.tourne (idem bg)
+#            jd.hanche jd.genou jd.ecarte (idem jg) cape md mg visage ; "x+=v" ajoute a la pose de base
+
+pose accroupi jd.hanche=110 jd.genou=140 jg.hanche=110 jg.genou=140 buste.tangage=30 bd.leve=40 bd.coude=40 bg.leve=40 bg.coude=40
+pose genou_terre jd.hanche=90 jd.genou=90 jg.hanche=-5 jg.genou=95 buste.tangage=5
+pose a_genoux jd.hanche=0 jd.genou=90 jg.hanche=0 jg.genou=90
+pose assis_talons jd.hanche=70 jd.genou=165 jg.hanche=70 jg.genou=165 buste.tangage=5
+pose assis_sol jd.hanche=85 jd.genou=10 jg.hanche=85 jg.genou=10 buste.tangage=-10 bd.leve=-30 bg.leve=-30
+pose assis_tailleur jd.hanche=80 jd.genou=150 jd.ecarte=40 jg.hanche=80 jg.genou=150 jg.ecarte=40 bd.leve=30 bd.coude=50 bg.leve=30 bg.coude=50
+pose assis_chaise jd.hanche=90 jd.genou=90 jg.hanche=90 jg.genou=90
+pose allonge_dos corps.tangage=-90
+pose allonge_ventre corps.tangage=88 bd.leve=150 bg.leve=150 bd.coude=40 bg.coude=40 tete.tangage=-30
+pose allonge_cote corps.roulis=90 jd.hanche=30 jd.genou=50 jg.hanche=25 jg.genou=40 bd.leve=40 bg.leve=50 bg.coude=60
+pose penche buste.tangage=70 jd.genou=15 jg.genou=15 bd.leve=60 bg.leve=60
+pose bras_croises bd.leve=40 bd.coude=100 bd.croise=60 bg.leve=40 bg.coude=100 bg.croise=60
+pose mains_hanches bd.ecarte=40 bd.coude=110 bd.tourne=-60 bg.ecarte=40 bg.coude=110 bg.tourne=-60
+pose mains_levees bd.ecarte=80 bd.coude=100 bd.tourne=90 bg.ecarte=80 bg.coude=100 bg.tourne=90
+pose bras_en_l_air bd.leve=170 bg.leve=170 bd.coude=10 bg.coude=10
+pose devant bd.leve=20 bd.coude=70 bg.leve=20 bg.coude=70
+pose deux_mains bd.leve=30 bd.coude=60 bd.croise=30 bg.leve=30 bg.coude=60 bg.croise=40
+pose porter_bras bd.leve=25 bd.coude=75 bd.croise=35 bg.leve=25 bg.coude=75 bg.croise=35 buste.tangage=-5
+pose porter_epaule bd.leve=150 bd.coude=150 bd.croise=20 buste.roulis=-5
+pose garde jd.hanche=20 jd.genou=25 jg.hanche=-15 jg.genou=20 buste.tangage=10 bd.leve=40 bd.coude=70 bg.leve=50 bg.coude=90 bg.croise=20
+pose pas1 jd.hanche=24 jd.genou=8 jg.hanche=-24 jg.genou=30 bd.leve=-14 bg.leve=14
+pose pas2 jd.hanche=0 jd.genou=5 jg.hanche=10 jg.genou=50
+pose pas3 jd.hanche=-24 jd.genou=30 jg.hanche=24 jg.genou=8 bd.leve=14 bg.leve=-14
+pose pas4 jd.hanche=10 jd.genou=50 jg.hanche=0 jg.genou=5
+pose course1 jd.hanche=50 jd.genou=30 jg.hanche=-30 jg.genou=90 buste.tangage=15 bd.leve=-35 bd.coude=90 bg.leve=45 bg.coude=90
+pose course2 jd.hanche=10 jd.genou=60 jg.hanche=20 jg.genou=110 buste.tangage=15 bd.coude=90 bg.coude=90 corps.y=0.08
+pose course3 jd.hanche=-30 jd.genou=90 jg.hanche=50 jg.genou=30 buste.tangage=15 bd.leve=45 bd.coude=90 bg.leve=-35 bg.coude=90
+pose course4 jd.hanche=20 jd.genou=110 jg.hanche=10 jg.genou=60 buste.tangage=15 bd.coude=90 bg.coude=90 corps.y=0.08
+
+# ---------------------------------------------------------------- deplacement
+anim marcher deplacement 8 1.0 boucle mobile
+  0 pas1
+  0.25 pas2
+  0.5 pas3
+  0.75 pas4
+anim courir deplacement 8 0.6 boucle mobile
+  0 course1
+  0.25 course2
+  0.5 course3
+  0.75 course4
+anim marcher_epuise deplacement 8 1.6 boucle mobile visage=douleur
+  0 pas1 buste.tangage=20 tete.tangage=20 bd.leve=0 bg.leve=0
+  0.25 pas2 buste.tangage=22 tete.tangage=25
+  0.5 pas3 buste.tangage=20 tete.tangage=20 bd.leve=0 bg.leve=0
+  0.75 pas4 buste.tangage=22 tete.tangage=25
+anim boiter deplacement 8 1.6 boucle mobile visage=douleur
+  0 pas1 jg.genou=10 buste.roulis=8
+  0.3 pas2 jg.genou=10 buste.roulis=10
+  0.5 pas3 jg.hanche=10 jg.genou=10 buste.roulis=-4 corps.y=-0.04
+  0.8 pas4 jg.genou=10 buste.roulis=4
+anim ramper deplacement 8 1.6 boucle mobile
+  0 allonge_ventre bd.leve=170 bg.leve=120 jd.hanche=40 jd.genou=60
+  0.5 allonge_ventre bd.leve=120 bg.leve=170 jg.hanche=40 jg.genou=60
+anim sauter deplacement 6 0.8 unefois
+  0 accroupi bd.leve=-30 bg.leve=-30
+  0.3 bras_en_l_air corps.y=0.5 jd.genou=40 jg.genou=40
+  0.6 corps.y=0.35 jd.hanche=30 jd.genou=60 jg.hanche=30 jg.genou=60 bd.leve=90 bg.leve=90
+  1 accroupi
+anim tomber_atterrir deplacement 6 0.7 unefois
+  0 corps.y=0.6 bras_en_l_air jd.hanche=20 jd.genou=40 jg.hanche=10 jg.genou=30
+  0.5 accroupi bd.leve=70 bg.leve=70
+  1 jd.genou=10 jg.genou=10
+anim grimper_echelle deplacement 4 0.8 boucle mobile
+  0 bd.leve=170 bd.coude=20 bg.leve=120 bg.coude=40 jd.hanche=70 jd.genou=90 jg.hanche=10 jg.genou=20
+  0.5 bd.leve=120 bd.coude=40 bg.leve=170 bg.coude=20 jd.hanche=10 jd.genou=20 jg.hanche=70 jg.genou=90
+anim monter_escalier deplacement 8 1.2 boucle mobile
+  0 pas1 jd.hanche=50 jd.genou=60 buste.tangage=8
+  0.25 pas2 buste.tangage=8
+  0.5 pas3 jg.hanche=50 jg.genou=60 buste.tangage=8
+  0.75 pas4 buste.tangage=8
+anim descendre_escalier deplacement 8 1.2 boucle mobile
+  0 pas1 jg.genou=50 buste.tangage=-4
+  0.25 pas2 buste.tangage=-4
+  0.5 pas3 jd.genou=50 buste.tangage=-4
+  0.75 pas4 buste.tangage=-4
+anim nager deplacement 8 1.4 boucle mobile
+  0 corps.tangage=70 bd.leve=170 bg.leve=60 jd.hanche=-10 jg.hanche=10 tete.tangage=-50
+  0.5 corps.tangage=70 bd.leve=60 bg.leve=170 jd.hanche=10 jg.hanche=-10 tete.tangage=-50
+anim porter_lourd deplacement 8 1.3 boucle mobile md=caisse
+  0 pas1 porter_bras buste.tangage=-8
+  0.25 pas2 porter_bras buste.tangage=-8
+  0.5 pas3 porter_bras buste.tangage=-8
+  0.75 pas4 porter_bras buste.tangage=-8
+anim porter_buches deplacement 8 1.2 boucle mobile md=fagot
+  0 pas1 porter_bras
+  0.25 pas2 porter_bras
+  0.5 pas3 porter_bras
+  0.75 pas4 porter_bras
+anim porter_sac_epaule deplacement 8 1.2 boucle mobile md=sac
+  0 pas1 porter_epaule
+  0.25 pas2 porter_epaule
+  0.5 pas3 porter_epaule
+  0.75 pas4 porter_epaule
+anim porter_panier_tete deplacement 8 1.1 boucle mobile md=panier
+  0 pas1 bd.leve=170 bd.coude=40 bd.croise=40
+  0.25 pas2 bd.leve=170 bd.coude=40 bd.croise=40
+  0.5 pas3 bd.leve=170 bd.coude=40 bd.croise=40
+  0.75 pas4 bd.leve=170 bd.coude=40 bd.croise=40
+anim porter_seaux deplacement 8 1.2 boucle mobile md=seau mg=seau
+  0 pas1 bd.leve=0 bg.leve=0 bd.ecarte=15 bg.ecarte=15 bd.coude=5 bg.coude=5
+  0.25 pas2 bd.ecarte=15 bg.ecarte=15 bd.coude=5 bg.coude=5
+  0.5 pas3 bd.leve=0 bg.leve=0 bd.ecarte=15 bg.ecarte=15 bd.coude=5 bg.coude=5
+  0.75 pas4 bd.ecarte=15 bg.ecarte=15 bd.coude=5 bg.coude=5
+anim pousser_brouette deplacement 8 1.2 boucle mobile
+  0 pas1 bd.leve=25 bg.leve=25 bd.coude=20 bg.coude=20 bd.ecarte=20 bg.ecarte=20 buste.tangage=15
+  0.25 pas2 bd.leve=25 bg.leve=25 bd.coude=20 bg.coude=20 bd.ecarte=20 bg.ecarte=20 buste.tangage=15
+  0.5 pas3 bd.leve=25 bg.leve=25 bd.coude=20 bg.coude=20 bd.ecarte=20 bg.ecarte=20 buste.tangage=15
+  0.75 pas4 bd.leve=25 bg.leve=25 bd.coude=20 bg.coude=20 bd.ecarte=20 bg.ecarte=20 buste.tangage=15
+anim tirer_charrette deplacement 8 1.4 boucle mobile
+  0 pas1 bd.leve=-20 bg.leve=-20 bd.coude=30 bg.coude=30 buste.tangage=25
+  0.25 pas2 bd.leve=-20 bg.leve=-20 bd.coude=30 bg.coude=30 buste.tangage=28
+  0.5 pas3 bd.leve=-20 bg.leve=-20 bd.coude=30 bg.coude=30 buste.tangage=25
+  0.75 pas4 bd.leve=-20 bg.leve=-20 bd.coude=30 bg.coude=30 buste.tangage=28
+anim se_retourner deplacement 4 0.4 unefois
+  0 corps.lacet=0
+  0.5 corps.lacet=90 jd.hanche=10
+  1 corps.lacet=180
+
+# ---------------------------------------------------------------- postures et repos
+anim attendre posture 4 3.0 boucle
+  0 bd.coude=15 bg.coude=15
+  0.5 bd.coude=18 bg.coude=18 buste.tangage=-2 tete.tangage=-3
+anim regarder_autour posture 8 3.0 boucle
+  0
+  0.25 tete.lacet=50
+  0.5 tete.lacet=0
+  0.75 tete.lacet=-50
+anim s_etirer posture 6 2.0 unefois visage=joie
+  0
+  0.4 bras_en_l_air buste.tangage=-10 tete.tangage=-20 corps.y=0.03
+  0.6 bras_en_l_air buste.tangage=-12 tete.tangage=-20 bd.ecarte=30 bg.ecarte=30
+  1
+anim se_gratter_tete posture 6 1.5 boucle
+  0 bd.leve=150 bd.coude=120 bd.croise=30 tete.roulis=-8
+  0.5 bd.leve=155 bd.coude=125 bd.croise=35 tete.roulis=-10
+anim bailler posture 6 2.0 unefois visage=cri
+  0
+  0.4 bd.leve=150 bd.coude=140 bd.croise=50 tete.tangage=-25
+  0.8 bd.leve=150 bd.coude=140 bd.croise=50 tete.tangage=-25
+  1
+anim croiser_bras posture 1 1 tenir
+  0 bras_croises
+anim mains_sur_hanches posture 1 1 tenir
+  0 mains_hanches
+anim s_appuyer_mur posture 2 3.0 boucle
+  0 corps.tangage=-10 corps.z=-0.1 jd.hanche=20 jd.genou=40 jg.hanche=-5 bras_croises
+  0.5 corps.tangage=-10 corps.z=-0.1 jd.hanche=20 jd.genou=40 jg.hanche=-5 bras_croises tete.lacet=20
+anim s_asseoir_sol posture 6 1.0 tenir
+  0
+  0.5 accroupi
+  1 assis_sol
+anim assis_sol posture 2 3.0 boucle
+  0 assis_sol
+  0.5 assis_sol tete.lacet=15
+anim assis_tailleur posture 2 3.0 boucle
+  0 assis_tailleur
+  0.5 assis_tailleur buste.tangage=4
+anim s_asseoir_banc posture 4 0.8 tenir
+  0
+  1 assis_chaise bd.leve=20 bg.leve=20 bd.coude=50 bg.coude=50
+anim assis_banc posture 2 3.0 boucle
+  0 assis_chaise bd.leve=20 bg.leve=20 bd.coude=50 bg.coude=50
+  0.5 assis_chaise bd.leve=20 bg.leve=20 bd.coude=50 bg.coude=50 tete.lacet=-20
+anim assis_comptoir posture 2 3.0 boucle md=chope
+  0 assis_chaise jd.hanche=70 jg.hanche=70 bd.leve=40 bd.coude=70 bg.leve=50 bg.coude=80 bg.croise=40 buste.tangage=15
+  0.5 assis_chaise jd.hanche=70 jg.hanche=70 bd.leve=40 bd.coude=70 bg.leve=50 bg.coude=80 bg.croise=40 buste.tangage=18
+anim se_lever posture 6 1.0 unefois
+  0 assis_chaise
+  0.5 accroupi buste.tangage=35
+  1
+anim s_accroupir posture 4 0.6 tenir
+  0
+  1 accroupi
+anim s_agenouiller posture 6 1.0 tenir
+  0
+  0.5 genou_terre
+  1 a_genoux
+anim genou_a_terre posture 1 1 tenir
+  0 genou_terre bd.leve=40 bd.coude=60
+anim s_allonger posture 6 1.6 tenir
+  0
+  0.3 accroupi
+  0.6 assis_sol
+  1 allonge_dos
+anim allonge posture 2 4.0 boucle
+  0 allonge_dos
+  0.5 allonge_dos bd.leve=10
+anim dormir posture 4 4.0 boucle visage=dort bulle=zzz
+  0 allonge_cote
+  0.5 allonge_cote buste.tangage=4
+anim dormir_assis posture 2 4.0 boucle visage=dort bulle=zzz
+  0 assis_sol tete.tangage=40 tete.roulis=15 bd.leve=0 bg.leve=0
+  0.5 assis_sol tete.tangage=44 tete.roulis=15 bd.leve=0 bg.leve=0
+anim se_reveiller posture 6 2.0 unefois
+  0 allonge_dos visage=dort
+  0.4 assis_sol bd.leve=-30 bg.leve=-30
+  0.7 assis_sol bras_en_l_air visage=cri
+  1 assis_sol
+
+# ---------------------------------------------------------------- besoins
+anim manger_assis besoin 6 2.0 boucle md=pain
+  0 assis_chaise bd.leve=30 bd.coude=70 bg.leve=30 bg.coude=70 bg.croise=30
+  0.4 assis_chaise bd.leve=60 bd.coude=120 bd.croise=40 bg.leve=30 bg.coude=70 bg.croise=30 tete.tangage=10
+  0.6 assis_chaise bd.leve=60 bd.coude=120 bd.croise=40 bg.leve=30 bg.coude=70 bg.croise=30 tete.tangage=10
+anim manger_debout besoin 6 2.0 boucle md=pain
+  0 bd.leve=20 bd.coude=70
+  0.4 bd.leve=60 bd.coude=120 bd.croise=40 tete.tangage=10
+  0.6 bd.leve=60 bd.coude=120 bd.croise=40 tete.tangage=10
+anim manger_bol besoin 6 2.0 boucle md=louche mg=bol
+  0 assis_chaise bg.leve=40 bg.coude=60 bg.croise=40 bd.leve=40 bd.coude=70 bd.croise=30
+  0.5 assis_chaise bg.leve=40 bg.coude=60 bg.croise=40 bd.leve=60 bd.coude=120 bd.croise=40 tete.tangage=15
+anim boire besoin 6 1.5 unefois md=chope
+  0 bd.leve=10 bd.coude=70
+  0.4 bd.leve=60 bd.coude=110 bd.croise=30 tete.tangage=-25
+  0.7 bd.leve=60 bd.coude=110 bd.croise=30 tete.tangage=-25
+  1 bd.leve=10 bd.coude=70
+anim boire_gourde besoin 6 1.5 unefois md=gourde
+  0 bd.leve=10 bd.coude=70
+  0.4 bd.leve=70 bd.coude=120 bd.croise=30 tete.tangage=-35
+  0.7 bd.leve=70 bd.coude=120 bd.croise=30 tete.tangage=-35
+  1 bd.leve=10 bd.coude=70
+anim boire_riviere besoin 6 2.5 unefois
+  0
+  0.3 genou_terre buste.tangage=50 bd.leve=70 bg.leve=70 bd.croise=30 bg.croise=30
+  0.6 genou_terre buste.tangage=30 bd.leve=90 bd.coude=90 bg.leve=90 bg.coude=90 bd.croise=40 bg.croise=40 tete.tangage=-10
+  1 genou_terre
+anim tirer_seau_puits besoin 8 2.0 boucle
+  0 bd.leve=100 bd.coude=30 bg.leve=60 bg.coude=40 buste.tangage=10
+  0.5 bd.leve=60 bd.coude=40 bg.leve=100 bg.coude=30 buste.tangage=5
+anim se_laver_visage besoin 6 1.6 boucle
+  0 penche bd.coude=60 bg.coude=60 bd.croise=30 bg.croise=30
+  0.5 buste.tangage=40 bd.leve=90 bd.coude=120 bd.croise=50 bg.leve=90 bg.coude=120 bg.croise=50 tete.tangage=10
+anim se_baigner besoin 4 2.0 boucle
+  0 corps.y=-0.6 bd.ecarte=60 bg.ecarte=60 bd.coude=40 bg.coude=40
+  0.5 corps.y=-0.6 bd.ecarte=70 bg.ecarte=70 bd.coude=50 bg.coude=50 buste.roulis=5
+anim se_rechauffer_feu besoin 4 2.0 boucle
+  0 accroupi bd.leve=80 bd.coude=10 bg.leve=80 bg.coude=10
+  0.5 accroupi bd.leve=75 bd.coude=15 bg.leve=75 bg.coude=15 bd.croise=10 bg.croise=10
+anim se_panser besoin 6 2.0 boucle mg=linge
+  0 assis_sol bd.leve=40 bd.coude=90 bd.croise=50 bg.leve=50 bg.coude=60 tete.tangage=25
+  0.5 assis_sol bd.leve=50 bd.coude=80 bd.croise=60 bg.leve=40 bg.coude=70 tete.tangage=25
+anim prier_debout besoin 4 3.0 boucle visage=neutre
+  0 bd.leve=60 bd.coude=100 bd.croise=70 bg.leve=60 bg.coude=100 bg.croise=70 tete.tangage=20
+  0.5 bd.leve=60 bd.coude=100 bd.croise=70 bg.leve=60 bg.coude=100 bg.croise=70 tete.tangage=25
+anim prier_genoux besoin 4 3.0 boucle visage=dort
+  0 a_genoux bd.leve=60 bd.coude=100 bd.croise=70 bg.leve=60 bg.coude=100 bg.croise=70 tete.tangage=25
+  0.5 a_genoux bd.leve=60 bd.coude=100 bd.croise=70 bg.leve=60 bg.coude=100 bg.croise=70 tete.tangage=30 buste.tangage=5
+anim lire besoin 4 4.0 boucle md=livre
+  0 bd.leve=50 bd.coude=80 bd.croise=40 bg.leve=50 bg.coude=80 bg.croise=40 tete.tangage=25
+  0.5 bd.leve=50 bd.coude=80 bd.croise=40 bg.leve=50 bg.coude=80 bg.croise=40 tete.tangage=25 tete.lacet=8
+anim lire_assis besoin 4 4.0 boucle md=livre
+  0 assis_chaise bd.leve=50 bd.coude=80 bd.croise=40 bg.leve=50 bg.coude=80 bg.croise=40 tete.tangage=25
+  0.5 assis_chaise bd.leve=50 bd.coude=80 bd.croise=40 bg.leve=50 bg.coude=80 bg.croise=40 tete.tangage=25 tete.lacet=8
+anim ecrire besoin 6 2.0 boucle md=plume
+  0 assis_chaise buste.tangage=25 bd.leve=40 bd.coude=70 bd.croise=20 bg.leve=40 bg.coude=70 bg.croise=40 tete.tangage=30
+  0.5 assis_chaise buste.tangage=25 bd.leve=40 bd.coude=75 bd.croise=30 bg.leve=40 bg.coude=70 bg.croise=40 tete.tangage=30
+anim tousser besoin 6 1.2 unefois visage=douleur bulle=malade
+  0
+  0.3 buste.tangage=30 bd.leve=60 bd.coude=120 bd.croise=50 tete.tangage=20
+  0.6 buste.tangage=15 bd.leve=60 bd.coude=120 bd.croise=50
+  1
+anim mal_au_ventre besoin 4 2.0 boucle visage=douleur bulle=malade
+  0 buste.tangage=30 bd.leve=30 bd.coude=70 bd.croise=60 bg.leve=30 bg.coude=70 bg.croise=60 jd.genou=15 jg.genou=15
+  0.5 buste.tangage=35 bd.leve=30 bd.coude=75 bd.croise=60 bg.leve=30 bg.coude=75 bg.croise=60 jd.genou=20 jg.genou=20
+anim grelotter besoin 4 0.3 boucle visage=douleur bulle=flocon
+  0 bras_croises buste.tangage=10 tete.tangage=10 buste.roulis=2
+  0.5 bras_croises buste.tangage=10 tete.tangage=10 buste.roulis=-2
+anim s_eponger_front besoin 6 1.5 unefois bulle=sueur
+  0
+  0.4 bd.leve=150 bd.coude=120 bd.croise=40 tete.tangage=-5
+  0.6 bd.leve=150 bd.coude=125 bd.croise=60 tete.tangage=-5
+  1
+anim s_abriter_pluie besoin 4 1.0 boucle
+  0 bd.leve=160 bd.coude=100 bd.croise=40 bg.leve=160 bg.coude=100 bg.croise=40 buste.tangage=15 tete.tangage=15
+  0.5 bd.leve=160 bd.coude=105 bd.croise=40 bg.leve=160 bg.coude=105 bg.croise=40 buste.tangage=15 tete.tangage=15
+anim chasser_mouches besoin 6 0.8 boucle
+  0 bd.leve=120 bd.coude=60 bd.croise=-20 tete.lacet=-15
+  0.5 bd.leve=130 bd.coude=40 bd.croise=40 tete.lacet=10
+
+# ---------------------------------------------------------------- echanges et dialogue
+anim parler social 6 1.6 boucle
+  0 bd.leve=20 bd.coude=80 bd.tourne=20
+  0.33 bd.leve=35 bd.coude=70 bd.tourne=40 tete.tangage=-5
+  0.66 bd.leve=25 bd.coude=90 bg.leve=20 bg.coude=60 tete.lacet=8
+anim parler_anime social 6 1.0 boucle
+  0 bd.leve=40 bd.coude=70 bd.tourne=40 bg.leve=30 bg.coude=70 bg.tourne=40
+  0.5 bd.leve=60 bd.coude=50 bd.ecarte=30 bg.leve=20 bg.coude=90 buste.tangage=5 tete.tangage=-5
+anim ecouter social 4 2.0 boucle
+  0 bras_croises tete.tangage=5
+  0.5 bras_croises tete.tangage=12 tete.roulis=6
+anim acquiescer social 4 0.8 unefois
+  0
+  0.33 tete.tangage=20
+  0.66 tete.tangage=-5
+  1 tete.tangage=15
+anim refuser_tete social 6 0.9 unefois
+  0
+  0.25 tete.lacet=30
+  0.5 tete.lacet=-30
+  0.75 tete.lacet=25
+  1
+anim chuchoter social 4 2.0 boucle
+  0 buste.tangage=15 buste.lacet=20 tete.roulis=10 bd.leve=120 bd.coude=140 bd.croise=40
+  0.5 buste.tangage=18 buste.lacet=20 tete.roulis=12 bd.leve=120 bd.coude=140 bd.croise=45
+anim saluer_main social 6 1.2 unefois visage=joie
+  0
+  0.3 bd.ecarte=70 bd.coude=100 bd.tourne=90 bd.leve=20
+  0.5 bd.ecarte=70 bd.coude=80 bd.tourne=90 bd.leve=20
+  0.7 bd.ecarte=70 bd.coude=110 bd.tourne=90 bd.leve=20
+  1
+anim reverence social 6 1.6 unefois
+  0
+  0.4 buste.tangage=45 tete.tangage=20 bd.leve=40 bd.coude=90 bd.croise=60 bg.leve=-20 jg.hanche=-15 jd.genou=15
+  0.7 buste.tangage=45 tete.tangage=20 bd.leve=40 bd.coude=90 bd.croise=60 bg.leve=-20 jg.hanche=-15 jd.genou=15
+  1
+anim incliner_tete social 4 0.8 unefois
+  0
+  0.5 tete.tangage=30 buste.tangage=10
+  1
+anim serrer_main social 6 1.2 boucle partenaire=serrer_main distance=0.7
+  0 bd.leve=50 bd.coude=30 bd.croise=15
+  0.5 bd.leve=40 bd.coude=35 bd.croise=15
+anim taper_dos social 6 1.0 unefois partenaire=recevoir_tape distance=0.55 placement=cote visage=joie
+  0 bd.ecarte=10
+  0.3 bd.leve=60 bd.ecarte=60 bd.coude=40 bd.croise=-30
+  0.5 bd.leve=60 bd.ecarte=60 bd.coude=50 bd.croise=-60
+  1 bd.leve=40 bd.ecarte=40 bd.coude=40
+anim recevoir_tape social 6 1.0 unefois visage=joie
+  0
+  0.5 buste.tangage=10
+  1
+anim trinquer social 6 1.4 unefois partenaire=trinquer distance=0.7 md=chope visage=joie
+  0 bd.leve=20 bd.coude=70
+  0.4 bd.leve=110 bd.coude=40 bd.croise=15
+  0.6 bd.leve=110 bd.coude=40 bd.croise=15
+  1 bd.leve=60 bd.coude=110 bd.croise=30 tete.tangage=-25
+anim montrer_doigt social 4 1.0 tenir
+  0
+  1 bd.leve=90 bd.coude=0
+anim hausser_epaules social 4 0.8 unefois
+  0
+  0.5 bd.ecarte=30 bd.coude=90 bd.tourne=60 bg.ecarte=30 bg.coude=90 bg.tourne=60 tete.roulis=10 corps.y=0.01
+  1
+anim applaudir social 4 0.5 boucle visage=joie
+  0 bd.leve=70 bd.coude=60 bd.croise=40 bg.leve=70 bg.coude=60 bg.croise=40
+  0.5 bd.leve=70 bd.coude=60 bd.croise=65 bg.leve=70 bg.coude=60 bg.croise=65
+anim rire social 4 0.6 boucle visage=joie
+  0 buste.tangage=-10 tete.tangage=-20 bd.leve=40 bd.coude=90 bd.croise=60
+  0.5 buste.tangage=5 tete.tangage=-10 bd.leve=40 bd.coude=95 bd.croise=60 corps.y=0.02
+anim pleurer social 4 1.6 boucle visage=triste bulle=larme
+  0 bd.leve=120 bd.coude=150 bd.croise=50 bg.leve=120 bg.coude=150 bg.croise=50 tete.tangage=25 buste.tangage=15
+  0.5 bd.leve=120 bd.coude=150 bd.croise=50 bg.leve=120 bg.coude=150 bg.croise=50 tete.tangage=28 buste.tangage=18
+anim se_disputer social 6 1.0 boucle visage=colere bulle=colere
+  0 bd.leve=60 bd.coude=60 bd.ecarte=30 bg.leve=30 bg.coude=90 buste.tangage=10
+  0.5 bd.leve=90 bd.coude=30 bd.ecarte=10 bg.leve=60 bg.coude=60 bg.ecarte=30 buste.tangage=15 tete.tangage=-10
+anim pousser social 4 0.6 unefois partenaire=etre_pousse distance=0.6 visage=colere
+  0 bd.leve=60 bd.coude=90 bg.leve=60 bg.coude=90
+  0.5 bd.leve=85 bd.coude=10 bg.leve=85 bg.coude=10 buste.tangage=15 jd.hanche=25
+  1 bd.leve=70 bd.coude=40 bg.leve=70 bg.coude=40
+anim etre_pousse social 4 0.6 unefois visage=peur
+  0
+  0.5 buste.tangage=-20 bd.leve=40 bg.leve=40 corps.z=-0.2 jg.hanche=-20
+  1 corps.z=-0.3
+anim danser social 8 1.2 boucle visage=joie
+  0 bd.leve=120 bd.ecarte=40 bg.leve=30 jd.hanche=30 jd.genou=50 corps.y=0.05 buste.roulis=8
+  0.25 bd.leve=60 bg.leve=60 corps.y=0
+  0.5 bg.leve=120 bg.ecarte=40 bd.leve=30 jg.hanche=30 jg.genou=50 corps.y=0.05 buste.roulis=-8
+  0.75 bd.leve=60 bg.leve=60 corps.y=0
+anim danser_deux social 8 1.6 boucle partenaire=danser_deux distance=0.5 visage=joie
+  0 bd.leve=70 bd.coude=40 bd.croise=40 bg.ecarte=60 bg.coude=60 bg.tourne=60 jd.hanche=20 corps.lacet=0
+  0.25 bd.leve=70 bd.coude=40 bd.croise=40 bg.ecarte=60 bg.coude=60 bg.tourne=60 corps.lacet=30 corps.y=0.03
+  0.5 bd.leve=70 bd.coude=40 bd.croise=40 bg.ecarte=60 bg.coude=60 bg.tourne=60 jg.hanche=20 corps.lacet=0
+  0.75 bd.leve=70 bd.coude=40 bd.croise=40 bg.ecarte=60 bg.coude=60 bg.tourne=60 corps.lacet=-30 corps.y=0.03
+anim chanter social 4 1.2 boucle visage=cri bulle=note
+  0 bd.ecarte=30 bd.coude=70 bd.tourne=50 tete.tangage=-15
+  0.5 bd.ecarte=40 bd.coude=60 bd.tourne=60 bg.ecarte=30 bg.coude=70 bg.tourne=50 tete.tangage=-20
+anim jouer_flute social 6 1.0 boucle md=flute bulle=note
+  0 bd.leve=80 bd.coude=110 bd.croise=50 bg.leve=70 bg.coude=120 bg.croise=50 tete.roulis=10
+  0.5 bd.leve=82 bd.coude=112 bd.croise=50 bg.leve=72 bg.coude=118 bg.croise=50 tete.roulis=12
+anim jouer_luth social 6 0.8 boucle md=luth bulle=note
+  0 bg.leve=60 bg.coude=70 bg.croise=20 bd.leve=40 bd.coude=80 bd.croise=50 tete.tangage=15
+  0.5 bg.leve=60 bg.coude=70 bg.croise=20 bd.leve=35 bd.coude=95 bd.croise=55 tete.tangage=15
+anim jouer_tambour social 6 0.5 boucle mg=tambour md=baguette bulle=note
+  0 bg.leve=40 bg.coude=80 bg.croise=40 bd.leve=90 bd.coude=60 bd.croise=40
+  0.5 bg.leve=40 bg.coude=80 bg.croise=40 bd.leve=50 bd.coude=70 bd.croise=50
+anim mendier social 4 2.0 boucle visage=triste
+  0 assis_talons bd.leve=60 bd.coude=40 bd.tourne=-40 tete.tangage=10
+  0.5 assis_talons bd.leve=70 bd.coude=40 bd.tourne=-40 tete.tangage=5
+anim discours social 6 2.0 boucle
+  0 bd.leve=120 bd.coude=30 bd.ecarte=20 bg.leve=30 bg.coude=60 tete.tangage=-10
+  0.5 bd.leve=80 bd.coude=40 bd.ecarte=30 bg.leve=60 bg.coude=50 bg.ecarte=30 tete.tangage=-5 buste.tangage=5
+anim donner_objet social 6 1.0 unefois partenaire=recevoir_objet distance=0.75 md=bourse
+  0 bd.leve=20 bd.coude=60
+  0.6 bd.leve=80 bd.coude=20
+  1 bd.leve=80 bd.coude=20
+anim recevoir_objet social 6 1.0 unefois
+  0
+  0.6 bd.leve=70 bd.coude=30 bd.tourne=-40
+  1 bd.leve=60 bd.coude=50 md=bourse
+
+# ---------------------------------------------------------------- amour et famille
+anim tenir_main_marcher amour 8 1.0 boucle mobile partenaire=tenir_main_marcher_g distance=0.45 placement=cote
+  0 pas1 bg.leve=5 bg.ecarte=25
+  0.25 pas2 bg.ecarte=25
+  0.5 pas3 bg.leve=5 bg.ecarte=25
+  0.75 pas4 bg.ecarte=25
+anim tenir_main_marcher_g amour 8 1.0 boucle mobile
+  0 pas3 bd.leve=5 bd.ecarte=25
+  0.25 pas4 bd.ecarte=25
+  0.5 pas1 bd.leve=5 bd.ecarte=25
+  0.75 pas2 bd.ecarte=25
+anim calin amour 4 2.0 boucle partenaire=calin_recu distance=0.42 visage=joie bulle=coeur
+  0 bd.leve=80 bd.coude=40 bd.croise=60 bg.leve=80 bg.coude=40 bg.croise=60 buste.tangage=8 tete.roulis=15
+  0.5 bd.leve=80 bd.coude=50 bd.croise=65 bg.leve=80 bg.coude=50 bg.croise=65 buste.tangage=8 tete.roulis=15 buste.roulis=5
+anim calin_recu amour 4 2.0 boucle visage=joie
+  0 bd.leve=70 bd.coude=50 bd.croise=60 bg.leve=70 bg.coude=50 bg.croise=60 tete.roulis=-15
+  0.5 bd.leve=70 bd.coude=55 bd.croise=65 bg.leve=70 bg.coude=55 bg.croise=65 tete.roulis=-15 buste.roulis=-5
+anim bisou_joue amour 6 1.4 unefois partenaire=bisou_joue_recu distance=0.45 visage=joie bulle=coeur
+  0
+  0.4 buste.tangage=15 tete.lacet=25 tete.tangage=5 bd.leve=40 bd.coude=50 bd.ecarte=20
+  0.7 buste.tangage=15 tete.lacet=25 tete.tangage=5 bd.leve=40 bd.coude=50 bd.ecarte=20
+  1
+anim bisou_joue_recu amour 6 1.4 unefois visage=joie
+  0
+  0.5 tete.lacet=-30 tete.roulis=-10
+  1
+anim baiser amour 6 2.0 unefois partenaire=baiser distance=0.38 visage=dort bulle=coeur
+  0 bd.leve=40 bd.coude=60 bg.leve=40 bg.coude=60
+  0.4 buste.tangage=10 tete.roulis=15 bd.leve=80 bd.coude=40 bd.croise=60 bg.leve=60 bg.coude=50 bg.croise=50
+  0.8 buste.tangage=10 tete.roulis=15 bd.leve=80 bd.coude=40 bd.croise=60 bg.leve=60 bg.coude=50 bg.croise=50
+  1 bd.leve=40 bd.coude=60 bg.leve=40 bg.coude=60
+anim se_blottir amour 2 3.0 boucle partenaire=se_blottir_recu distance=0.4 placement=cote visage=joie
+  0 assis_chaise buste.roulis=-15 tete.roulis=-20 bg.leve=40 bg.coude=70 bg.croise=40
+  0.5 assis_chaise buste.roulis=-16 tete.roulis=-22 bg.leve=40 bg.coude=70 bg.croise=40
+anim se_blottir_recu amour 2 3.0 boucle visage=joie
+  0 assis_chaise bd.ecarte=60 bd.coude=60 bd.croise=-20 bd.tourne=-20
+anim consoler amour 4 2.0 boucle partenaire=etre_console distance=0.45 placement=cote visage=triste
+  0 bg.ecarte=70 bg.coude=50 bg.croise=-30 tete.lacet=30 tete.roulis=8
+  0.5 bg.ecarte=70 bg.coude=55 bg.croise=-30 tete.lacet=30 tete.roulis=10
+anim etre_console amour 4 2.0 boucle visage=triste bulle=larme
+  0 bd.leve=120 bd.coude=150 bd.croise=50 bg.leve=110 bg.coude=150 bg.croise=50 tete.tangage=25
+  0.5 bd.leve=120 bd.coude=150 bd.croise=50 bg.leve=110 bg.coude=150 bg.croise=50 tete.tangage=28 tete.roulis=10
+anim demande_mariage amour 6 2.0 tenir partenaire=recevoir_demande distance=0.8 md=fleur
+  0
+  0.5 genou_terre
+  1 genou_terre bd.leve=80 bd.coude=10 tete.tangage=-20
+anim recevoir_demande amour 6 2.0 tenir visage=joie bulle=coeur
+  0
+  0.6 bd.leve=110 bd.coude=150 bd.croise=60 bg.leve=110 bg.coude=150 bg.croise=60
+  1 bd.leve=110 bd.coude=150 bd.croise=60 bg.leve=110 bg.coude=150 bg.croise=60 tete.tangage=10
+anim mariage amour 4 3.0 boucle partenaire=mariage distance=0.6 visage=joie bulle=coeur
+  0 bd.leve=60 bd.coude=40 bd.croise=20 bg.leve=60 bg.coude=40 bg.croise=20
+  0.5 bd.leve=60 bd.coude=45 bd.croise=20 bg.leve=60 bg.coude=45 bg.croise=20 tete.tangage=5
+anim porter_bebe amour 4 2.0 boucle md=bebe
+  0 porter_bras bd.croise=45 bg.croise=45
+  0.5 porter_bras bd.croise=45 bg.croise=45 tete.tangage=20
+anim bercer_bebe amour 6 2.0 boucle md=bebe visage=joie
+  0 porter_bras bd.croise=45 bg.croise=45 buste.roulis=8 tete.tangage=20
+  0.5 porter_bras bd.croise=45 bg.croise=45 buste.roulis=-8 tete.tangage=20
+anim porter_enfant_epaules amour 8 1.0 boucle mobile partenaire=sur_les_epaules distance=1.3 placement=dessus
+  0 pas1 bd.leve=150 bd.coude=90 bg.leve=150 bg.coude=90
+  0.25 pas2 bd.leve=150 bd.coude=90 bg.leve=150 bg.coude=90
+  0.5 pas3 bd.leve=150 bd.coude=90 bg.leve=150 bg.coude=90
+  0.75 pas4 bd.leve=150 bd.coude=90 bg.leve=150 bg.coude=90
+anim sur_les_epaules amour 2 1.0 boucle visage=joie
+  0 assis_chaise jd.ecarte=40 jg.ecarte=40 jd.genou=60 jg.genou=60 bd.leve=150 bg.leve=150
+anim jouer_avec_enfant amour 6 1.2 boucle partenaire=jouer_enfant distance=0.8 visage=joie
+  0 accroupi bd.ecarte=60 bd.tourne=40 bg.ecarte=60 bg.tourne=40
+  0.5 accroupi bd.leve=70 bd.coude=30 bg.leve=70 bg.coude=30 corps.y=0.03
+anim jouer_enfant amour 6 1.0 boucle visage=joie
+  0 bras_en_l_air corps.y=0.1
+  0.5 jd.hanche=30 jd.genou=50
+anim gronder amour 6 1.2 boucle partenaire=etre_gronde distance=0.8 visage=colere bulle=colere
+  0 mains_hanches buste.tangage=10
+  0.5 mains_hanches bd.leve=90 bd.coude=10 bd.ecarte=0 bd.tourne=0 buste.tangage=15 tete.tangage=-5
+anim etre_gronde amour 4 2.0 boucle visage=triste
+  0 tete.tangage=30 bd.leve=20 bd.coude=40 bd.croise=50 bg.leve=20 bg.coude=40 bg.croise=50
+anim jouer_chat enfant 8 0.6 boucle mobile visage=joie
+  0 course1 bras_en_l_air
+  0.25 course2
+  0.5 course3 bras_en_l_air
+  0.75 course4
+anim cache_cache enfant 4 2.0 boucle
+  0 accroupi bd.leve=120 bd.coude=150 bd.croise=50 bg.leve=120 bg.coude=150 bg.croise=50 tete.tangage=20
+  0.5 accroupi bd.leve=120 bd.coude=150 bd.croise=50 bg.leve=120 bg.coude=150 bg.croise=50 tete.tangage=10 tete.lacet=20
+anim ricochets enfant 6 1.2 unefois md=pierre
+  0 genou_terre bd.leve=-40 bd.ecarte=40
+  0.5 genou_terre bd.leve=60 bd.ecarte=60 bd.croise=-30 buste.lacet=-30
+  1 genou_terre bd.leve=80 bd.ecarte=10 bd.croise=40 buste.lacet=20 md=aucun
+anim pleurer_tombe amour 4 3.0 boucle visage=triste bulle=larme md=bouquet
+  0 a_genoux buste.tangage=30 tete.tangage=30 bd.leve=40 bd.coude=40
+  0.5 a_genoux buste.tangage=34 tete.tangage=32 bd.leve=40 bd.coude=40
+
+# ---------------------------------------------------------------- emotions (systeme nemesis)
+anim reconnaitre emotion 6 1.0 unefois bulle=exclamation
+  0 tete.lacet=-60 corps.lacet=-40
+  0.4 tete.lacet=-10 corps.lacet=-20 visage=peur
+  1 corps.lacet=0 tete.lacet=0
+anim colere_poing emotion 4 0.8 boucle visage=colere bulle=colere
+  0 bd.ecarte=30 bd.coude=150 bd.tourne=90 bd.leve=40 buste.tangage=5
+  0.5 bd.ecarte=35 bd.coude=140 bd.tourne=90 bd.leve=60 buste.tangage=8 tete.tangage=-10
+anim cracher emotion 6 1.0 unefois visage=colere
+  0
+  0.4 tete.tangage=-20 buste.tangage=-10
+  0.6 tete.tangage=20 buste.tangage=20
+  1
+anim menacer_doigt emotion 6 1.0 boucle visage=colere
+  0 bd.leve=90 bd.coude=10 buste.tangage=10
+  0.5 bd.leve=100 bd.coude=25 buste.tangage=12 tete.tangage=-5
+anim defier emotion 6 1.0 unefois visage=colere
+  0 bd.leve=50 bd.coude=110 bd.croise=60 bg.leve=50 bg.coude=110 bg.croise=60
+  0.4 bd.leve=60 bd.coude=120 bd.croise=70 bg.leve=60 bg.coude=120 bg.croise=70 buste.tangage=-10 tete.tangage=-15
+  0.8 mains_levees buste.tangage=-15 tete.tangage=-20 visage=cri
+  1 bras_croises
+anim cri_de_guerre emotion 6 1.2 unefois visage=cri bulle=exclamation
+  0 garde
+  0.5 bd.leve=170 bd.coude=10 bg.leve=60 bg.coude=60 buste.tangage=-15 tete.tangage=-25 jd.hanche=25
+  1 bd.leve=160 bd.coude=10 bg.leve=60 bg.coude=60 buste.tangage=-10 tete.tangage=-20 jd.hanche=25
+anim reculer_peur emotion 8 1.2 boucle mobile visage=peur
+  0 pas3 buste.tangage=-15 bd.leve=60 bd.coude=90 bg.leve=60 bg.coude=90
+  0.5 pas1 buste.tangage=-15 bd.leve=60 bd.coude=90 bg.leve=60 bg.coude=90
+anim se_proteger emotion 4 1.0 tenir visage=peur
+  0
+  1 bd.leve=120 bd.coude=120 bd.croise=40 bg.leve=110 bg.coude=120 bg.croise=40 buste.tangage=20 tete.tangage=20 jd.genou=25 jg.genou=25
+anim fuir emotion 8 0.5 boucle mobile visage=peur
+  0 course1 tete.lacet=40
+  0.25 course2
+  0.5 course3 tete.lacet=40
+  0.75 course4
+anim se_cacher emotion 4 2.0 boucle visage=peur
+  0 accroupi bd.leve=110 bd.coude=140 bd.croise=50 bg.leve=110 bg.coude=140 bg.croise=50 tete.tangage=30
+  0.5 accroupi bd.leve=110 bd.coude=140 bd.croise=50 bg.leve=110 bg.coude=140 bg.croise=50 tete.tangage=25 buste.roulis=3
+anim sursauter emotion 4 0.6 unefois visage=peur bulle=exclamation
+  0
+  0.3 mains_levees corps.y=0.08 buste.tangage=-15
+  1 bd.leve=60 bd.coude=90 bg.leve=60 bg.coude=90
+anim sauter_de_joie emotion 6 0.8 boucle visage=joie
+  0 bras_en_l_air corps.y=0.25 jd.genou=40 jg.genou=40
+  0.5 jd.genou=20 jg.genou=20 bd.leve=120 bg.leve=120
+anim tete_basse emotion 2 3.0 boucle visage=triste
+  0 tete.tangage=35 buste.tangage=10 bd.coude=5 bg.coude=5
+  0.5 tete.tangage=38 buste.tangage=12
+anim detourner_regard emotion 4 1.0 tenir visage=triste
+  0
+  1 tete.lacet=60 tete.tangage=15 buste.lacet=15
+anim salut_bas emotion 6 1.6 unefois
+  0
+  0.5 buste.tangage=70 tete.tangage=15 bd.leve=40 bd.coude=90 bd.croise=60 bg.leve=-30 jg.hanche=-20
+  0.8 buste.tangage=70 tete.tangage=15 bd.leve=40 bd.coude=90 bd.croise=60 bg.leve=-30 jg.hanche=-20
+  1
+anim agenouiller_seigneur emotion 4 1.2 tenir
+  0
+  0.5 genou_terre
+  1 genou_terre tete.tangage=35 buste.tangage=15 bd.leve=40 bd.coude=80 bd.croise=60
+anim regard_noir emotion 2 2.0 boucle visage=colere
+  0 bras_croises tete.tangage=10
+  0.5 bras_croises tete.tangage=12 buste.tangage=3
+anim jurer_vengeance emotion 6 1.6 tenir visage=colere bulle=colere
+  0
+  0.5 bd.leve=160 bd.coude=40 bd.tourne=90 tete.tangage=-20
+  1 bd.leve=170 bd.coude=20 tete.tangage=-25 buste.tangage=-8
+anim se_moquer emotion 6 0.8 boucle visage=joie
+  0 bd.leve=80 bd.coude=10 buste.tangage=-10 tete.tangage=-20 bg.leve=40 bg.coude=90 bg.croise=60
+  0.5 bd.leve=85 bd.coude=15 buste.tangage=5 tete.tangage=-10 bg.leve=40 bg.coude=95 bg.croise=60 corps.y=0.02
+anim surprise emotion 4 0.6 tenir visage=peur bulle=question
+  0
+  1 bd.leve=40 bd.coude=100 bd.tourne=40 bg.leve=40 bg.coude=100 bg.tourne=40 tete.tangage=-10 buste.tangage=-8
+
+# ---------------------------------------------------------------- travail
+anim couper_bois travail 8 1.2 boucle md=hache
+  0    jd.hanche=-10 jg.hanche=15 buste.tangage=-10 bd.leve=170 bd.coude=40 bg.leve=160 bg.coude=50 bd.croise=20 bg.croise=30
+  0.4  jd.hanche=-10 jg.hanche=15 buste.tangage=-15 bd.leve=180 bd.coude=50 bg.leve=170 bg.coude=60 bd.croise=20 bg.croise=30
+  0.6  jd.hanche=-10 jg.hanche=15 buste.tangage=35 bd.leve=60 bd.coude=10 bg.leve=55 bg.coude=15 bd.croise=25 bg.croise=35
+  0.8  jd.hanche=-10 jg.hanche=15 buste.tangage=35 bd.leve=55 bd.coude=10 bg.leve=50 bg.coude=15 bd.croise=25 bg.croise=35
+anim abattre_arbre travail 8 1.2 boucle md=hache
+  0 jd.hanche=20 jg.hanche=-15 buste.lacet=-50 buste.tangage=5 bd.leve=90 bd.ecarte=50 bd.coude=30 bg.leve=80 bg.ecarte=30 bg.coude=40
+  0.5 jd.hanche=20 jg.hanche=-15 buste.lacet=30 buste.tangage=15 bd.leve=80 bd.croise=40 bd.coude=10 bg.leve=75 bg.croise=50 bg.coude=20
+anim fendre_buche travail 8 1.0 boucle md=masse
+  0 bd.leve=175 bd.coude=50 bg.leve=170 bg.coude=55 bd.croise=25 bg.croise=30 buste.tangage=-10
+  0.5 bd.leve=45 bd.coude=5 bg.leve=40 bg.coude=10 bd.croise=25 bg.croise=35 buste.tangage=45 jd.genou=20 jg.genou=20
+anim scier_deux travail 8 1.0 boucle md=scie partenaire=scier_deux distance=1.2
+  0 genou_terre buste.tangage=25 bd.leve=60 bd.coude=40
+  0.5 genou_terre buste.tangage=15 bd.leve=40 bd.coude=90
+anim scier travail 8 0.8 boucle md=scie
+  0 penche buste.tangage=40 bd.leve=60 bd.coude=40 bg.leve=50 bg.coude=40 bg.croise=40
+  0.5 penche buste.tangage=40 bd.leve=40 bd.coude=90 bg.leve=50 bg.coude=40 bg.croise=40
+anim empiler_buches travail 8 2.0 boucle md=buche
+  0 penche porter_bras buste.tangage=60
+  0.5 porter_bras buste.tangage=-5
+  0.8 porter_bras bd.leve=70 bg.leve=70 buste.tangage=20
+anim petrir travail 8 1.0 boucle
+  0 buste.tangage=30 bd.leve=50 bd.coude=50 bd.croise=30 bg.leve=50 bg.coude=50 bg.croise=30
+  0.5 buste.tangage=40 bd.leve=60 bd.coude=20 bd.croise=35 bg.leve=60 bg.coude=20 bg.croise=35 corps.y=-0.02
+anim faconner_pain travail 6 1.2 boucle md=pain
+  0 buste.tangage=25 bd.leve=40 bd.coude=60 bd.croise=40 bg.leve=40 bg.coude=60 bg.croise=40
+  0.5 buste.tangage=25 bd.leve=45 bd.coude=55 bd.croise=50 bg.leve=45 bg.coude=55 bg.croise=50
+anim tamiser travail 6 0.6 boucle md=bol
+  0 bd.leve=50 bd.coude=60 bd.croise=40 bg.leve=50 bg.coude=60 bg.croise=40 buste.roulis=4
+  0.5 bd.leve=50 bd.coude=60 bd.croise=50 bg.leve=50 bg.coude=60 bg.croise=30 buste.roulis=-4
+anim enfourner travail 8 2.0 boucle md=pelle_four
+  0 bd.leve=40 bd.coude=40 bg.leve=60 bg.coude=40 bg.croise=30 jd.hanche=20 jg.hanche=-10
+  0.5 bd.leve=70 bd.coude=10 bg.leve=75 bg.coude=10 bg.croise=30 buste.tangage=20 jd.hanche=35 jd.genou=30 jg.hanche=-20
+anim recharger_four travail 6 1.6 boucle md=buche
+  0 accroupi porter_bras
+  0.5 accroupi bd.leve=80 bd.coude=20 bg.leve=80 bg.coude=20 buste.tangage=40
+anim porter_sac_grain travail 8 1.2 boucle mobile md=sac
+  0 pas1 porter_epaule
+  0.25 pas2 porter_epaule
+  0.5 pas3 porter_epaule
+  0.75 pas4 porter_epaule
+anim verser_grain travail 6 1.6 unefois md=sac
+  0 porter_epaule
+  0.5 bd.leve=100 bd.coude=30 bg.leve=90 bg.coude=40 buste.tangage=20
+  1 bd.leve=80 bd.coude=10 bg.leve=70 bg.coude=20 buste.tangage=25
+anim ouvrir_vanne travail 6 1.6 unefois
+  0
+  0.5 bd.leve=120 bd.coude=30 bg.leve=120 bg.coude=30
+  1 bd.leve=60 bd.coude=40 bg.leve=60 bg.coude=40 buste.tangage=15 corps.y=-0.05
+anim forger travail 6 0.7 boucle md=marteau mg=pince
+  0 jd.hanche=15 jg.hanche=-10 buste.tangage=15 bd.leve=140 bd.coude=70 bg.leve=40 bg.coude=50 bg.croise=40
+  0.5 jd.hanche=15 jg.hanche=-10 buste.tangage=25 bd.leve=50 bd.coude=40 bg.leve=40 bg.coude=50 bg.croise=40
+anim actionner_soufflet travail 6 1.0 boucle
+  0 bd.leve=90 bd.coude=30 bd.ecarte=15 buste.tangage=10
+  0.5 bd.leve=40 bd.coude=60 bd.ecarte=15 buste.tangage=20 corps.y=-0.03
+anim attiser_feu travail 6 1.2 boucle md=pince
+  0 accroupi bd.leve=70 bd.coude=10
+  0.5 accroupi bd.leve=55 bd.coude=10 bd.croise=20
+anim tremper_metal travail 6 2.0 unefois md=pince
+  0 bd.leve=60 bd.coude=40
+  0.5 penche bd.leve=50 bd.coude=10
+  1 bd.leve=70 bd.coude=40
+anim ferrer_cheval travail 6 0.8 boucle md=marteau
+  0 penche buste.tangage=60 bd.leve=90 bd.coude=70 bg.leve=50 bg.coude=40 jd.genou=40 jg.genou=40 jd.hanche=30 jg.hanche=30
+  0.5 penche buste.tangage=60 bd.leve=50 bd.coude=40 bg.leve=50 bg.coude=40 jd.genou=40 jg.genou=40 jd.hanche=30 jg.hanche=30
+anim raboter travail 6 0.9 boucle md=rabot
+  0 buste.tangage=30 bd.leve=40 bd.coude=40 bd.croise=20 bg.leve=50 bg.coude=40 bg.croise=40 jd.hanche=20 jg.hanche=-15
+  0.5 buste.tangage=40 bd.leve=70 bd.coude=10 bd.croise=20 bg.leve=75 bg.coude=10 bg.croise=40 jd.hanche=25 jg.hanche=-20
+anim clouer travail 6 0.6 boucle md=marteau
+  0 accroupi bd.leve=100 bd.coude=80 bg.leve=50 bg.coude=20
+  0.5 accroupi bd.leve=50 bd.coude=40 bg.leve=50 bg.coude=20
+anim poser_poutre travail 6 2.0 boucle md=buche
+  0 porter_bras
+  0.5 bras_en_l_air bd.croise=30 bg.croise=30 tete.tangage=-25
+anim gratter_peau travail 6 0.9 boucle md=couteau
+  0 buste.tangage=40 bd.leve=60 bd.coude=40 bg.leve=60 bg.coude=40 bg.croise=30
+  0.5 buste.tangage=45 bd.leve=40 bd.coude=50 bg.leve=60 bg.coude=40 bg.croise=30
+anim remuer_cuve travail 6 1.6 boucle md=baton
+  0 buste.tangage=20 bd.leve=60 bd.coude=40 bg.leve=60 bg.coude=40 bd.croise=30 bg.croise=30
+  0.25 buste.tangage=20 buste.lacet=20 bd.leve=65 bd.coude=35 bg.leve=65 bg.coude=35 bd.croise=30 bg.croise=30
+  0.5 buste.tangage=25 bd.leve=55 bd.coude=40 bg.leve=55 bg.coude=40 bd.croise=30 bg.croise=30
+  0.75 buste.tangage=20 buste.lacet=-20 bd.leve=60 bd.coude=40 bg.leve=60 bg.coude=40 bd.croise=30 bg.croise=30
+anim tendre_peau travail 6 1.6 boucle md=peau
+  0 bras_en_l_air bd.ecarte=30 bg.ecarte=30
+  0.5 bd.leve=150 bg.leve=150 bd.ecarte=40 bg.ecarte=40 tete.tangage=-15
+anim tisser travail 6 1.0 boucle
+  0 assis_chaise bd.leve=60 bd.coude=50 bg.leve=60 bg.coude=50 buste.tangage=10
+  0.5 assis_chaise bd.leve=60 bd.coude=50 bd.croise=40 bg.leve=60 bg.coude=50 bg.croise=-20 buste.tangage=10 buste.lacet=10
+anim filer_rouet travail 6 1.2 boucle
+  0 assis_chaise jd.hanche=60 jd.genou=60 bd.leve=50 bd.coude=50 bg.leve=50 bg.coude=70 bg.croise=40
+  0.5 assis_chaise jd.hanche=75 jd.genou=80 bd.leve=60 bd.coude=40 bd.croise=-10 bg.leve=50 bg.coude=70 bg.croise=40
+anim filer_quenouille travail 6 1.4 boucle mg=quenouille md=fuseau
+  0 bg.leve=40 bg.coude=70 bd.leve=30 bd.coude=60 bd.croise=20
+  0.5 bg.leve=40 bg.coude=70 bd.leve=10 bd.coude=40 bd.croise=10
+anim tourner_poterie travail 6 1.0 boucle
+  0 assis_chaise buste.tangage=30 bd.leve=60 bd.coude=60 bd.croise=40 bg.leve=60 bg.coude=60 bg.croise=40 jd.hanche=60 jd.genou=60
+  0.5 assis_chaise buste.tangage=30 bd.leve=60 bd.coude=55 bd.croise=45 bg.leve=60 bg.coude=55 bg.croise=45 jd.hanche=80 jd.genou=100
+anim modeler travail 6 1.2 boucle
+  0 buste.tangage=25 bd.leve=40 bd.coude=70 bd.croise=40 bg.leve=40 bg.coude=70 bg.croise=40
+  0.5 buste.tangage=25 bd.leve=45 bd.coude=60 bd.croise=55 bg.leve=45 bg.coude=60 bg.croise=55
+anim enfourner_poterie travail 6 2.0 unefois md=pot
+  0 porter_bras
+  0.5 accroupi porter_bras buste.tangage=40
+  1 accroupi bd.leve=80 bd.coude=10 bg.leve=80 bg.coude=10 buste.tangage=45 md=aucun
+anim decouper_viande travail 6 0.8 boucle md=couperet
+  0 buste.tangage=20 bd.leve=130 bd.coude=70 bg.leve=40 bg.coude=50 bg.croise=40
+  0.5 buste.tangage=30 bd.leve=50 bd.coude=40 bg.leve=40 bg.coude=50 bg.croise=40
+anim suspendre_viande travail 6 1.6 unefois md=viande
+  0 bd.leve=20 bd.coude=40
+  0.6 bd.leve=170 bd.coude=10 tete.tangage=-25
+  1 bd.leve=170 bd.coude=10 tete.tangage=-25 md=aucun
+anim labourer travail 8 1.4 boucle mobile md=houe
+  0 pas1 bd.leve=40 bd.coude=20 bg.leve=40 bg.coude=20 bg.croise=30 buste.tangage=25
+  0.25 pas2 bd.leve=120 bd.coude=40 bg.leve=110 bg.coude=40 bg.croise=30 buste.tangage=5
+  0.5 pas3 bd.leve=40 bd.coude=20 bg.leve=40 bg.coude=20 bg.croise=30 buste.tangage=25
+  0.75 pas4 bd.leve=60 bd.coude=30 bg.leve=55 bg.coude=30 bg.croise=30 buste.tangage=20
+anim semer travail 8 1.2 boucle mobile mg=sac
+  0 pas1 bd.leve=40 bd.coude=50 bd.croise=40 bg.leve=20 bg.coude=70
+  0.25 pas2 bd.leve=70 bd.ecarte=60 bd.coude=10 bd.tourne=-40 bg.leve=20 bg.coude=70
+  0.5 pas3 bd.leve=40 bd.coude=50 bd.croise=40 bg.leve=20 bg.coude=70
+  0.75 pas4 bd.leve=70 bd.ecarte=60 bd.coude=10 bd.tourne=-40 bg.leve=20 bg.coude=70
+anim faucher travail 8 1.2 boucle md=faux
+  0 jd.hanche=15 jg.hanche=-10 buste.lacet=-60 buste.tangage=15 bd.leve=40 bd.ecarte=40 bd.coude=40 bg.leve=50 bg.coude=30
+  0.5 jd.hanche=15 jg.hanche=-10 buste.lacet=50 buste.tangage=20 bd.leve=50 bd.croise=40 bd.coude=30 bg.leve=60 bg.croise=40 bg.coude=20
+anim moissonner travail 6 1.0 boucle md=faucille
+  0 penche buste.tangage=55 bd.leve=60 bd.ecarte=30 bg.leve=70 bg.coude=30 bg.croise=30
+  0.5 penche buste.tangage=60 bd.leve=60 bd.croise=40 bg.leve=70 bg.coude=30 bg.croise=30
+anim battre_ble travail 6 0.8 boucle md=fleau
+  0 bd.leve=170 bd.coude=40 bg.leve=150 bg.coude=50 bg.croise=30 buste.tangage=-10
+  0.5 bd.leve=60 bd.coude=10 bg.leve=50 bg.coude=20 bg.croise=30 buste.tangage=30
+anim arroser travail 6 1.6 boucle md=arrosoir
+  0 bd.leve=30 bd.coude=40 buste.tangage=10
+  0.5 bd.leve=55 bd.coude=30 buste.tangage=20 tete.tangage=15
+anim desherber travail 6 1.2 boucle
+  0 accroupi bd.leve=70 bd.coude=10
+  0.5 accroupi bd.leve=50 bd.coude=40 buste.tangage=20
+anim cueillir travail 6 1.2 boucle mg=panier
+  0 bd.leve=120 bd.coude=20 bg.leve=20 bg.coude=40 tete.tangage=-20
+  0.5 bd.leve=40 bd.coude=80 bd.croise=40 bg.leve=20 bg.coude=40
+anim ramasser_sol travail 6 1.2 unefois
+  0
+  0.5 penche buste.tangage=80 bd.leve=80 bd.coude=10
+  1
+anim traire travail 6 0.6 boucle mg=seau
+  0 assis_chaise jd.hanche=80 jd.genou=120 jg.hanche=80 jg.genou=120 buste.tangage=30 bd.leve=60 bd.coude=40 bg.leve=60 bg.coude=40
+  0.5 assis_chaise jd.hanche=80 jd.genou=120 jg.hanche=80 jg.genou=120 buste.tangage=30 bd.leve=50 bd.coude=50 bg.leve=65 bg.coude=35
+anim nourrir_betes travail 6 1.2 boucle mg=panier
+  0 bg.leve=30 bg.coude=60 bd.leve=40 bd.coude=50 bd.croise=40
+  0.5 bg.leve=30 bg.coude=60 bd.leve=60 bd.ecarte=50 bd.coude=10 bd.tourne=-40 buste.tangage=10
+anim tondre travail 6 0.6 boucle md=ciseaux
+  0 penche buste.tangage=50 bd.leve=60 bd.coude=30 bg.leve=60 bg.coude=30
+  0.5 penche buste.tangage=50 bd.leve=55 bd.coude=35 bd.croise=15 bg.leve=60 bg.coude=30
+anim garder_troupeau travail 4 3.0 boucle md=houlette
+  0 bd.leve=30 bd.coude=60 bg.leve=20 bg.coude=50 bg.croise=30
+  0.5 bd.leve=30 bd.coude=60 bg.leve=20 bg.coude=50 bg.croise=30 tete.lacet=30
+anim lancer_filet travail 8 1.6 unefois md=filet
+  0 bd.leve=20 bd.coude=40 buste.lacet=-40
+  0.4 bd.leve=120 bd.ecarte=40 bd.coude=40 buste.lacet=-60 buste.tangage=-10
+  0.7 bd.leve=90 bd.croise=30 bd.coude=10 buste.lacet=30 buste.tangage=15
+  1 bd.leve=70 bd.coude=20 buste.tangage=10 md=aucun
+anim pecher_ligne travail 4 3.0 boucle md=canne
+  0 bd.leve=40 bd.coude=50 bg.leve=40 bg.coude=50 bg.croise=40
+  0.5 bd.leve=42 bd.coude=52 bg.leve=40 bg.coude=50 bg.croise=40 tete.lacet=10
+anim ferrer_poisson travail 6 0.8 unefois md=canne visage=joie
+  0 bd.leve=40 bd.coude=50 bg.leve=40 bg.coude=50 bg.croise=40
+  0.5 bd.leve=130 bd.coude=40 bg.leve=110 bg.coude=50 bg.croise=40 buste.tangage=-15
+  1 bd.leve=120 bd.coude=50 bg.leve=100 bg.coude=50 bg.croise=40 buste.tangage=-10
+anim vider_poisson travail 6 0.8 boucle md=couteau mg=poisson
+  0 buste.tangage=25 bd.leve=50 bd.coude=60 bd.croise=30 bg.leve=50 bg.coude=60 bg.croise=30
+  0.5 buste.tangage=25 bd.leve=40 bd.coude=70 bd.croise=40 bg.leve=50 bg.coude=60 bg.croise=30
+anim ramer travail 8 1.6 boucle md=rame
+  0 assis_chaise jd.hanche=70 jg.hanche=70 buste.tangage=30 bd.leve=90 bd.coude=10 bg.leve=90 bg.coude=10 bd.croise=20 bg.croise=20
+  0.5 assis_chaise jd.hanche=70 jg.hanche=70 buste.tangage=-15 bd.leve=40 bd.coude=90 bg.leve=40 bg.coude=90 bd.croise=20 bg.croise=20
+anim piocher travail 6 0.9 boucle md=pioche
+  0 bd.leve=170 bd.coude=40 bg.leve=160 bg.coude=50 bd.croise=20 bg.croise=30 buste.tangage=-5
+  0.5 bd.leve=50 bd.coude=10 bg.leve=45 bg.coude=15 bd.croise=25 bg.croise=35 buste.tangage=40 jd.genou=20 jg.genou=20
+anim tailler_pierre travail 6 0.6 boucle md=marteau
+  0 accroupi bd.leve=100 bd.coude=70 bg.leve=60 bg.coude=40 bg.croise=30
+  0.5 accroupi bd.leve=60 bd.coude=50 bg.leve=60 bg.coude=40 bg.croise=30
+anim poser_pierre travail 6 1.6 unefois md=pierre
+  0 porter_bras
+  0.5 penche porter_bras buste.tangage=50
+  1 penche buste.tangage=55 bd.leve=70 bg.leve=70 md=aucun
+anim truelle travail 6 0.8 boucle md=truelle
+  0 buste.tangage=25 bd.leve=50 bd.coude=50 bd.croise=20
+  0.5 buste.tangage=30 bd.leve=60 bd.coude=40 bd.croise=-10
+anim pelleter travail 8 1.2 boucle md=pelle
+  0 penche buste.tangage=40 bd.leve=40 bd.coude=10 bg.leve=50 bg.coude=40 bg.croise=30 jd.genou=30 jg.genou=30
+  0.5 buste.tangage=10 bd.leve=100 bd.coude=30 bg.leve=90 bg.coude=50 bg.croise=30 buste.lacet=30
+anim tirer_biere travail 6 1.6 unefois md=chope
+  0 bd.leve=40 bd.coude=50 bg.leve=60 bg.coude=40 bg.croise=20 buste.tangage=10
+  0.5 bd.leve=40 bd.coude=50 bg.leve=70 bg.coude=50 bg.croise=20 bg.tourne=-40 buste.tangage=15
+  1 bd.leve=40 bd.coude=60
+anim servir_chope travail 6 1.0 unefois md=chope
+  0 bd.leve=30 bd.coude=70
+  0.6 bd.leve=80 bd.coude=20 buste.tangage=15
+  1 bd.leve=80 bd.coude=20 buste.tangage=15 md=aucun
+anim porter_plateau travail 8 1.0 boucle mobile md=plateau
+  0 pas1 bd.leve=20 bd.coude=95 bd.tourne=-20
+  0.25 pas2 bd.leve=20 bd.coude=95 bd.tourne=-20
+  0.5 pas3 bd.leve=20 bd.coude=95 bd.tourne=-20
+  0.75 pas4 bd.leve=20 bd.coude=95 bd.tourne=-20
+anim essuyer_comptoir travail 6 1.2 boucle md=linge
+  0 buste.tangage=25 bd.leve=60 bd.coude=30 bd.croise=-20
+  0.5 buste.tangage=25 bd.leve=60 bd.coude=30 bd.croise=40
+anim encaisser travail 6 1.2 unefois md=piece
+  0 bd.leve=60 bd.coude=40 bd.tourne=-40
+  0.5 bd.leve=40 bd.coude=90 bd.croise=40
+  1 bd.leve=20 bd.coude=40 md=aucun
+anim crier_marchandise travail 6 1.6 boucle visage=cri
+  0 bd.leve=120 bd.coude=30 bd.ecarte=30 tete.tangage=-15
+  0.5 bd.leve=90 bd.coude=50 bd.ecarte=30 bg.ecarte=30 bg.coude=60 bg.tourne=40 tete.tangage=-10
+anim montrer_marchandise travail 6 1.6 boucle md=pain
+  0 bd.leve=70 bd.coude=30 bd.tourne=-30
+  0.5 bd.leve=80 bd.coude=20 bd.tourne=-30 bd.croise=-20 bg.ecarte=40 bg.coude=40 bg.tourne=40
+anim peser travail 6 1.6 boucle md=bourse mg=bourse
+  0 bd.ecarte=40 bd.leve=40 bd.coude=60 bg.ecarte=40 bg.leve=40 bg.coude=60
+  0.5 bd.ecarte=40 bd.leve=45 bd.coude=60 bg.ecarte=40 bg.leve=35 bg.coude=60 tete.roulis=8
+anim compter_pieces travail 6 1.2 boucle md=piece
+  0 bd.leve=50 bd.coude=70 bd.croise=40 bg.leve=50 bg.coude=70 bg.croise=40 tete.tangage=25
+  0.5 bd.leve=50 bd.coude=75 bd.croise=50 bg.leve=50 bg.coude=70 bg.croise=40 tete.tangage=25
+anim marchander travail 6 1.6 boucle
+  0 bd.leve=40 bd.coude=80 bd.tourne=40 tete.roulis=8
+  0.5 bd.leve=60 bd.coude=60 bd.tourne=30 bg.leve=30 bg.coude=80 bg.tourne=40 tete.roulis=-8
+anim patrouiller travail 8 1.2 boucle mobile md=lance
+  0 pas1 bd.leve=10 bd.coude=60
+  0.25 pas2 bd.leve=10 bd.coude=60
+  0.5 pas3 bd.leve=10 bd.coude=60
+  0.75 pas4 bd.leve=10 bd.coude=60
+anim garde_a_vous travail 2 3.0 boucle md=lance
+  0 bd.leve=5 bd.coude=55 bg.coude=0 tete.tangage=-5 buste.tangage=-3
+anim entrainement_mannequin travail 8 1.0 boucle md=epee
+  0 garde bd.leve=150 bd.coude=60
+  0.5 garde bd.leve=60 bd.coude=10 bd.croise=30 buste.tangage=15 jd.hanche=35
+anim aiguiser_lame travail 6 1.0 boucle md=epee mg=pierre
+  0 assis_chaise buste.tangage=20 bd.leve=40 bd.coude=50 bg.leve=50 bg.coude=50 bg.croise=40
+  0.5 assis_chaise buste.tangage=20 bd.leve=40 bd.coude=50 bg.leve=60 bg.coude=30 bg.croise=20
+anim proclamation travail 6 2.0 boucle md=parchemin
+  0 bd.leve=70 bd.coude=50 bd.croise=30 bg.leve=70 bg.coude=50 bg.croise=30 tete.tangage=10
+  0.5 bd.leve=75 bd.coude=45 bd.croise=30 bg.leve=75 bg.coude=45 bg.croise=30 tete.tangage=-5
+anim signer travail 6 1.6 unefois md=plume
+  0 bd.leve=40 bd.coude=70
+  0.5 buste.tangage=35 bd.leve=50 bd.coude=60 bd.croise=20 tete.tangage=30
+  1 buste.tangage=30 bd.leve=50 bd.coude=60 bd.croise=30 tete.tangage=30
+anim recevoir_audience travail 4 3.0 boucle
+  0 assis_chaise bd.leve=40 bd.coude=40 bg.leve=40 bg.coude=40 bd.ecarte=20 bg.ecarte=20 tete.tangage=-5
+anim benir travail 6 1.6 unefois
+  0
+  0.5 bd.leve=110 bd.coude=40 bd.tourne=-20
+  0.8 bd.leve=110 bd.coude=40 bd.croise=-30 bd.tourne=-20
+  1 bd.leve=100 bd.coude=40 bd.croise=30
+anim precher travail 6 2.0 boucle md=livre
+  0 bg.leve=50 bg.coude=80 bg.croise=40 bd.leve=110 bd.coude=40 bd.ecarte=20 tete.tangage=-10
+  0.5 bg.leve=50 bg.coude=80 bg.croise=40 bd.leve=80 bd.coude=50 bd.ecarte=30 tete.tangage=-5
+anim sonner_cloche travail 6 1.6 boucle
+  0 bras_en_l_air bd.croise=20 bg.croise=20 tete.tangage=-20
+  0.5 bd.leve=80 bd.coude=30 bg.leve=80 bg.coude=30 buste.tangage=15 jd.genou=20 jg.genou=20 corps.y=-0.05
+anim ecrire_tableau travail 6 1.2 boucle md=baguette
+  0 bd.leve=130 bd.coude=30 buste.lacet=-30 tete.lacet=-30
+  0.5 bd.leve=120 bd.coude=40 bd.croise=-20 buste.lacet=-30 tete.lacet=-30
+anim faire_reciter travail 6 2.0 boucle md=baguette
+  0 bd.leve=60 bd.coude=60 bg.leve=40 bg.coude=90 bg.croise=50
+  0.5 bd.leve=90 bd.coude=40 bg.leve=40 bg.coude=90 bg.croise=50 tete.tangage=-5
+anim balayer travail 8 1.2 boucle md=balai
+  0 bd.leve=40 bd.coude=40 bg.leve=60 bg.coude=40 bg.croise=40 buste.tangage=20 buste.lacet=-25
+  0.5 bd.leve=30 bd.coude=50 bg.leve=50 bg.coude=50 bg.croise=40 buste.tangage=20 buste.lacet=25
+anim laver_linge travail 6 1.0 boucle md=linge
+  0 a_genoux buste.tangage=40 bd.leve=60 bd.coude=20 bg.leve=60 bg.coude=20 bd.croise=20 bg.croise=20
+  0.5 a_genoux buste.tangage=50 bd.leve=70 bd.coude=10 bg.leve=70 bg.coude=10 bd.croise=30 bg.croise=30
+anim etendre_linge travail 6 1.6 boucle md=linge
+  0 bd.leve=40 bd.coude=40 bg.leve=40 bg.coude=40
+  0.5 bras_en_l_air bd.ecarte=20 bg.ecarte=20 tete.tangage=-20
+anim remuer_marmite travail 6 1.6 boucle md=louche
+  0 buste.tangage=20 bd.leve=60 bd.coude=40 bd.croise=20 bg.leve=20 bg.coude=40
+  0.25 buste.tangage=20 bd.leve=65 bd.coude=30 bd.croise=40 bg.leve=20 bg.coude=40
+  0.5 buste.tangage=22 bd.leve=55 bd.coude=40 bd.croise=50 bg.leve=20 bg.coude=40
+  0.75 buste.tangage=20 bd.leve=60 bd.coude=50 bd.croise=30 bg.leve=20 bg.coude=40
+anim couper_legumes travail 6 0.5 boucle md=couteau mg=carotte
+  0 buste.tangage=20 bd.leve=60 bd.coude=50 bd.croise=30 bg.leve=50 bg.coude=60 bg.croise=40
+  0.5 buste.tangage=20 bd.leve=45 bd.coude=55 bd.croise=30 bg.leve=50 bg.coude=60 bg.croise=40
+anim puiser_eau travail 6 1.6 unefois md=seau
+  0
+  0.5 penche buste.tangage=60 bd.leve=70 bd.coude=10
+  1 bd.leve=10 bd.coude=10
+anim tirer_arc_chasse travail 8 1.6 unefois mg=arc
+  0 bg.leve=90 bg.coude=0 bd.leve=90 bd.coude=40 bd.croise=40 buste.lacet=-60 tete.lacet=60
+  0.6 bg.leve=90 bg.coude=0 bd.leve=90 bd.coude=150 bd.ecarte=40 buste.lacet=-60 tete.lacet=60
+  0.8 bg.leve=90 bg.coude=0 bd.leve=90 bd.coude=150 bd.ecarte=40 buste.lacet=-60 tete.lacet=60
+  1 bg.leve=90 bg.coude=0 bd.leve=60 bd.coude=10 bd.ecarte=60 buste.lacet=-60 tete.lacet=60
+anim poser_piege travail 6 1.6 unefois md=corde
+  0
+  0.5 accroupi bd.leve=70 bd.coude=20 bg.leve=70 bg.coude=20
+  1 accroupi bd.leve=60 bd.coude=30 bg.leve=60 bg.coude=30 md=aucun
+anim depecer travail 6 0.8 boucle md=couteau
+  0 a_genoux buste.tangage=45 bd.leve=60 bd.coude=20 bg.leve=60 bg.coude=20
+  0.5 a_genoux buste.tangage=50 bd.leve=70 bd.coude=10 bg.leve=60 bg.coude=20
+anim frotter_bains travail 6 0.8 boucle md=linge
+  0 a_genoux buste.tangage=40 bd.leve=80 bd.coude=20 bd.croise=-20
+  0.5 a_genoux buste.tangage=40 bd.leve=80 bd.coude=20 bd.croise=30
+anim verser_eau_chaude travail 6 1.6 unefois md=seau
+  0 bd.leve=40 bd.coude=40 bg.leve=40 bg.coude=40 bg.croise=40
+  0.6 bd.leve=100 bd.coude=20 bg.leve=80 bg.coude=50 bg.croise=40 buste.tangage=20
+  1 bd.leve=90 bd.coude=10 bg.leve=70 bg.coude=50 bg.croise=40 buste.tangage=25
+anim coudre travail 6 1.0 boucle md=aiguille mg=tissu
+  0 assis_chaise buste.tangage=20 bd.leve=50 bd.coude=80 bd.croise=40 bg.leve=50 bg.coude=70 bg.croise=40 tete.tangage=30
+  0.5 assis_chaise buste.tangage=20 bd.leve=70 bd.coude=70 bd.croise=20 bg.leve=50 bg.coude=70 bg.croise=40 tete.tangage=30
+
+# ---------------------------------------------------------------- combat
+anim garde_combat combat 4 1.2 boucle md=epee
+  0 garde
+  0.5 garde corps.y=-0.02 buste.tangage=12
+anim garde_bouclier combat 4 1.2 boucle md=epee mg=bouclier
+  0 garde bg.leve=70 bg.coude=90 bg.croise=40
+  0.5 garde bg.leve=70 bg.coude=90 bg.croise=40 corps.y=-0.02
+anim attaque_taille combat 6 0.6 unefois md=epee visage=colere
+  0 garde bd.leve=160 bd.ecarte=40 bd.coude=60
+  0.4 garde bd.leve=150 bd.ecarte=40 bd.coude=70 buste.lacet=-20
+  0.7 garde bd.leve=60 bd.croise=40 bd.coude=10 buste.lacet=25 buste.tangage=20 jd.hanche=35
+  1 garde
+anim attaque_revers combat 6 0.6 unefois md=epee visage=colere
+  0 garde bd.leve=80 bd.croise=60 bd.coude=60 buste.lacet=30
+  0.6 garde bd.leve=90 bd.ecarte=60 bd.coude=10 buste.lacet=-30 buste.tangage=15
+  1 garde
+anim attaque_estoc combat 6 0.5 unefois md=epee visage=colere
+  0 garde bd.leve=40 bd.coude=100
+  0.5 garde bd.leve=90 bd.coude=0 buste.tangage=20 jd.hanche=45 jd.genou=30 jg.hanche=-25
+  1 garde
+anim coup_haut combat 6 0.7 unefois md=epee visage=colere
+  0 garde
+  0.4 garde bras_en_l_air bd.croise=10 bg.croise=20 buste.tangage=-10
+  0.7 garde bd.leve=70 bd.coude=10 bg.leve=65 bg.coude=20 bd.croise=20 bg.croise=30 buste.tangage=30
+  1 garde
+anim coup_de_poing combat 6 0.5 unefois visage=colere
+  0 garde bd.leve=40 bd.coude=130 bg.leve=60 bg.coude=120
+  0.5 garde bd.leve=90 bd.coude=0 bd.croise=15 buste.lacet=25 bg.leve=60 bg.coude=120 jd.hanche=30
+  1 garde bd.leve=40 bd.coude=130 bg.leve=60 bg.coude=120
+anim coup_de_pied combat 6 0.6 unefois visage=colere
+  0 garde
+  0.5 garde jd.hanche=90 jd.genou=10 buste.tangage=-15 bd.ecarte=40 bg.ecarte=40
+  1 garde
+anim tirer_arc combat 8 1.2 unefois mg=arc
+  0 bg.leve=90 bg.coude=0 bd.leve=90 bd.coude=40 bd.croise=40 buste.lacet=-60 tete.lacet=60
+  0.6 bg.leve=90 bg.coude=0 bd.leve=90 bd.coude=150 bd.ecarte=40 buste.lacet=-60 tete.lacet=60
+  1 bg.leve=90 bg.coude=0 bd.leve=60 bd.coude=10 bd.ecarte=60 buste.lacet=-60 tete.lacet=60
+anim lancer combat 6 0.7 unefois md=pierre
+  0 bd.leve=-30 bd.coude=40 buste.lacet=-30 jg.hanche=20
+  0.4 bd.leve=170 bd.coude=90 bd.ecarte=20 buste.lacet=-40 buste.tangage=-10
+  0.7 bd.leve=90 bd.coude=0 buste.lacet=30 buste.tangage=20 jd.hanche=30 md=aucun
+  1 bd.leve=40 bd.coude=10 md=aucun
+anim parer combat 4 0.5 unefois md=epee
+  0 garde
+  0.5 garde bd.leve=120 bd.coude=80 bd.croise=50 buste.tangage=-5
+  1 garde bd.leve=110 bd.coude=80 bd.croise=50
+anim bloquer_bouclier combat 4 0.5 tenir md=epee mg=bouclier
+  0 garde bg.leve=70 bg.coude=90 bg.croise=40
+  1 garde bg.leve=90 bg.coude=80 bg.croise=55 buste.tangage=15 tete.tangage=10 corps.y=-0.04
+anim esquiver combat 6 0.5 unefois
+  0 garde
+  0.5 garde corps.x=0.4 buste.roulis=-20 jd.ecarte=30
+  1 garde corps.x=0.5
+anim roulade combat 8 0.7 unefois
+  0 accroupi
+  0.25 accroupi corps.tangage=90 corps.z=0.1
+  0.5 accroupi corps.tangage=180 corps.z=0.25 corps.y=0.1
+  0.75 accroupi corps.tangage=270 corps.z=0.35
+  1 accroupi corps.tangage=360 corps.z=0.4
+anim lutter combat 6 1.0 boucle partenaire=lutter distance=0.45 visage=colere
+  0 garde bd.leve=80 bd.coude=40 bd.croise=50 bg.leve=80 bg.coude=40 bg.croise=50 buste.tangage=30
+  0.5 garde bd.leve=85 bd.coude=35 bd.croise=55 bg.leve=75 bg.coude=45 bg.croise=50 buste.tangage=35 buste.roulis=8
+anim desarmer combat 6 0.8 unefois partenaire=etre_desarme distance=0.7 visage=colere
+  0 garde
+  0.5 garde bd.leve=90 bd.coude=20 bd.croise=30 buste.tangage=15
+  1 garde bd.leve=60 bd.coude=50 md=epee
+anim etre_desarme combat 6 0.8 unefois md=epee visage=peur
+  0 garde
+  0.5 garde bd.leve=110 bd.ecarte=50 bd.coude=20 md=aucun
+  1 bd.leve=40 bd.coude=60 md=aucun buste.tangage=-10
+anim etre_touche combat 4 0.4 unefois visage=douleur
+  0
+  0.4 buste.tangage=-20 tete.tangage=-25 bd.leve=30 bg.leve=30 bd.ecarte=30 bg.ecarte=30
+  1 buste.tangage=10
+anim chanceler combat 8 1.2 unefois visage=douleur
+  0 buste.roulis=10 jd.ecarte=10
+  0.3 buste.roulis=-15 corps.x=-0.15 jg.hanche=15 bd.ecarte=40 bg.ecarte=40
+  0.6 buste.roulis=12 corps.x=0.1 jd.hanche=15 bd.ecarte=40 bg.ecarte=30
+  1 buste.roulis=0
+anim etourdi combat 6 1.0 boucle visage=douleur bulle=etoiles
+  0 buste.roulis=8 tete.roulis=15 bd.coude=10 bg.coude=10 jd.genou=15
+  0.5 buste.roulis=-8 tete.roulis=-15 jg.genou=15
+anim etre_projete combat 6 0.8 unefois visage=douleur
+  0 buste.tangage=-30 bras_en_l_air
+  0.4 corps.tangage=-50 corps.y=0.4 corps.z=-0.6 bras_en_l_air
+  1 allonge_dos corps.z=-1.2
+anim tomber_au_sol combat 6 0.8 tenir visage=douleur
+  0
+  0.3 jd.genou=40 jg.genou=40 buste.tangage=20
+  0.6 a_genoux buste.tangage=30 bd.leve=30 bg.leve=30
+  1 allonge_ventre bd.leve=100 bg.leve=110 corps.z=0.5
+anim a_terre_assomme combat 2 3.0 boucle visage=dort bulle=etoiles
+  0 allonge_dos bd.ecarte=40 bg.ecarte=20 jd.hanche=15 jd.genou=30
+anim ramper_blesse combat 8 2.0 boucle mobile visage=douleur
+  0 allonge_ventre bd.leve=170 bg.leve=110 jd.hanche=30 jd.genou=50
+  0.5 allonge_ventre bd.leve=120 bg.leve=170 jg.hanche=30 jg.genou=50
+anim se_relever combat 8 1.4 unefois visage=douleur
+  0 allonge_ventre
+  0.3 a_genoux buste.tangage=60 bd.leve=80 bg.leve=80
+  0.6 genou_terre bd.leve=40 bd.coude=40
+  1
+anim lacher_arme combat 4 0.6 unefois md=epee visage=peur
+  0 bd.leve=40 bd.coude=50
+  0.6 bd.leve=30 bd.ecarte=30 bd.coude=10 md=aucun
+  1 bd.ecarte=30 bd.coude=10 md=aucun
+anim mains_en_l_air combat 4 0.6 tenir visage=peur
+  0
+  1 mains_levees tete.tangage=10
+anim se_rendre combat 8 2.0 tenir visage=peur
+  0 bd.leve=20 bg.leve=20
+  0.3 mains_levees
+  0.6 genou_terre mains_levees tete.tangage=20
+  1 a_genoux mains_levees tete.tangage=30 buste.tangage=5
+anim supplier combat 6 1.4 boucle visage=peur
+  0 a_genoux bd.leve=80 bd.coude=60 bd.croise=60 bg.leve=80 bg.coude=60 bg.croise=60 tete.tangage=-15
+  0.5 a_genoux bd.leve=85 bd.coude=55 bd.croise=65 bg.leve=85 bg.coude=55 bg.croise=65 tete.tangage=-10 buste.tangage=15
+anim etre_ligote combat 2 2.0 boucle visage=triste md=corde
+  0 a_genoux bd.leve=-30 bd.coude=40 bd.croise=-60 bg.leve=-30 bg.coude=40 bg.croise=-60 tete.tangage=25
+anim ligoter combat 6 1.0 boucle partenaire=etre_ligote distance=0.55 md=corde
+  0 genou_terre bd.leve=50 bd.coude=40 bg.leve=50 bg.coude=40 buste.tangage=20
+  0.5 genou_terre bd.leve=60 bd.coude=50 bd.croise=30 bg.leve=50 bg.coude=40 buste.tangage=25
+anim emmener_prisonnier combat 8 1.2 boucle mobile partenaire=etre_emmene distance=0.5 placement=cote md=corde
+  0 pas1 bg.ecarte=30 bg.coude=40
+  0.25 pas2 bg.ecarte=30 bg.coude=40
+  0.5 pas3 bg.ecarte=30 bg.coude=40
+  0.75 pas4 bg.ecarte=30 bg.coude=40
+anim etre_emmene combat 8 1.2 boucle mobile visage=triste
+  0 pas1 buste.tangage=15 tete.tangage=25 bd.leve=-30 bd.croise=-60 bg.leve=-30 bg.croise=-60 bd.coude=40 bg.coude=40
+  0.25 pas2 buste.tangage=15 tete.tangage=25 bd.leve=-30 bd.croise=-60 bg.leve=-30 bg.croise=-60 bd.coude=40 bg.coude=40
+  0.5 pas3 buste.tangage=15 tete.tangage=25 bd.leve=-30 bd.croise=-60 bg.leve=-30 bg.croise=-60 bd.coude=40 bg.coude=40
+  0.75 pas4 buste.tangage=15 tete.tangage=25 bd.leve=-30 bd.croise=-60 bg.leve=-30 bg.croise=-60 bd.coude=40 bg.coude=40
+anim epargner combat 6 1.2 unefois md=epee
+  0 bd.leve=150 bd.coude=40 buste.tangage=-5
+  0.5 bd.leve=60 bd.coude=40 tete.lacet=30
+  1 bd.leve=10 bd.coude=40 tete.lacet=30
+anim achever combat 6 1.0 unefois md=epee partenaire=etre_acheve distance=0.7 visage=colere
+  0 bd.leve=170 bd.coude=30 bg.leve=160 bg.coude=40 bd.croise=20 bg.croise=30
+  0.6 bd.leve=60 bd.coude=10 bg.leve=55 bg.coude=20 bd.croise=20 bg.croise=30 buste.tangage=40 jd.hanche=30 jd.genou=40
+  1 bd.leve=50 bd.coude=10 bg.leve=50 bg.coude=20 bd.croise=20 bg.croise=30 buste.tangage=45 jd.hanche=30 jd.genou=40
+anim etre_acheve combat 4 1.0 tenir visage=douleur
+  0 a_genoux mains_levees tete.tangage=-10
+  0.6 a_genoux buste.tangage=30 tete.tangage=40
+  1 allonge_ventre
+anim mourir combat 8 1.4 tenir visage=douleur
+  0
+  0.25 buste.tangage=-15 tete.tangage=-25 bd.leve=60 bd.coude=120 bd.croise=60
+  0.5 a_genoux buste.tangage=20 tete.tangage=30 bd.leve=40 bd.coude=100 bd.croise=60
+  1 allonge_cote visage=dort
+anim mort_au_sol combat 1 1 tenir visage=dort
+  0 allonge_dos bd.ecarte=50 bg.ecarte=30 jd.hanche=10 jd.ecarte=10 tete.lacet=40
+anim rallier combat 6 1.2 unefois md=epee visage=cri bulle=exclamation
+  0
+  0.5 bd.leve=170 bd.coude=0 tete.tangage=-20 buste.tangage=-10
+  1 bd.leve=165 bd.coude=10 bd.ecarte=10 tete.tangage=-15
+anim fuir_debandade combat 8 0.5 boucle mobile visage=peur
+  0 course1 bras_en_l_air
+  0.25 course2
+  0.5 course3 bras_en_l_air
+  0.75 course4
+anim soigner combat 6 1.6 boucle partenaire=etre_soigne distance=0.6 md=linge
+  0 genou_terre buste.tangage=25 bd.leve=60 bd.coude=40 bg.leve=60 bg.coude=40
+  0.5 genou_terre buste.tangage=30 bd.leve=65 bd.coude=50 bd.croise=20 bg.leve=60 bg.coude=40
+anim etre_soigne combat 2 2.0 boucle visage=douleur
+  0 assis_sol bd.leve=10 bg.leve=-30
+
+# ---------------------------------------------------------------- objets et interactions
+anim ouvrir_porte objet 6 1.0 unefois
+  0
+  0.4 bd.leve=80 bd.coude=30
+  1 bd.leve=70 bd.coude=10 bd.ecarte=40 buste.lacet=-20
+anim fermer_porte objet 6 1.0 unefois
+  0 bd.leve=70 bd.coude=10 bd.ecarte=40
+  0.6 bd.leve=80 bd.coude=30 bd.croise=20
+  1
+anim frapper_porte objet 6 0.8 unefois
+  0 bd.leve=90 bd.coude=110
+  0.25 bd.leve=95 bd.coude=90
+  0.5 bd.leve=90 bd.coude=110
+  0.75 bd.leve=95 bd.coude=90
+  1 bd.leve=90 bd.coude=110
+anim fouiller_coffre objet 6 1.2 boucle
+  0 penche buste.tangage=55 bd.leve=70 bd.coude=20 bg.leve=60 bg.coude=30
+  0.5 penche buste.tangage=60 bd.leve=60 bd.coude=30 bd.croise=30 bg.leve=70 bg.coude=20
+anim ramasser objet 6 1.0 unefois
+  0
+  0.5 penche buste.tangage=75 bd.leve=80 bd.coude=10 jd.genou=30 jg.genou=30
+  1 bd.leve=30 bd.coude=70 md=bourse
+anim poser objet 6 1.0 unefois md=caisse
+  0 porter_bras
+  0.5 penche porter_bras buste.tangage=60 jd.genou=30 jg.genou=30
+  1 md=aucun
+anim donner objet 6 1.0 unefois md=pain
+  0 bd.leve=20 bd.coude=60
+  0.6 bd.leve=80 bd.coude=10
+  1 bd.leve=20 bd.coude=40 md=aucun
+anim recevoir objet 6 1.0 unefois
+  0
+  0.5 bd.leve=80 bd.coude=10 bd.tourne=-40
+  1 bd.leve=30 bd.coude=70 md=pain
+anim allumer_feu objet 6 1.0 boucle
+  0 accroupi bd.leve=60 bd.coude=40 bd.croise=30 bg.leve=60 bg.coude=40 bg.croise=30
+  0.5 accroupi bd.leve=60 bd.coude=40 bd.croise=50 bg.leve=60 bg.coude=40 bg.croise=10 buste.tangage=40
+anim allumer_bougie objet 6 1.2 unefois md=bougie
+  0 bd.leve=40 bd.coude=60
+  0.5 bd.leve=70 bd.coude=50 bd.croise=20 tete.tangage=15
+  1 bd.leve=40 bd.coude=60
+anim porter_torche objet 8 1.0 boucle mobile md=torche
+  0 pas1 bd.leve=40 bd.coude=60
+  0.25 pas2 bd.leve=40 bd.coude=60
+  0.5 pas3 bd.leve=40 bd.coude=60
+  0.75 pas4 bd.leve=40 bd.coude=60
+anim tirer_corde objet 6 1.2 boucle
+  0 bras_en_l_air bd.croise=20 bg.croise=20
+  0.5 bd.leve=90 bd.coude=40 bg.leve=90 bg.coude=40 bd.croise=20 bg.croise=20 jd.genou=25 jg.genou=25 corps.y=-0.06
+anim utiliser_outil objet 6 0.8 boucle md=outil
+  0 buste.tangage=20 bd.leve=80 bd.coude=50
+  0.5 buste.tangage=25 bd.leve=50 bd.coude=40

@@ -14,7 +14,7 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 public final class Archive {
-    private static final int FORMAT = 1;
+    private static final int FORMAT = 3;
     private static final long FIN = 0x46494E484953L;
     private static final int TAMPON = 1 << 16;
 

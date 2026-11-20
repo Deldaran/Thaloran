@@ -52,6 +52,8 @@ public class RenduTuiles {
     private final Terrain terrain;
     private final ShaderProgram shader;
     private final Mesh mesh;
+    /** Lot J1 : le moment de l'année (0 au premier jour du printemps, 1 au dernier de l'hiver) : les cultures en suivent les étapes. */
+    public float annee;
     private final Texture palette;
     private final SpriteBatch pinceau = new SpriteBatch();
     public static final double PIXEL_MIN = 1.9;
@@ -202,6 +204,7 @@ public class RenduTuiles {
         if (rues != null) {
             rues.texture().bind(4);
             rues.sol().bind(5);
+            rues.champs().bind(6);
         }
         palette.bind(2);
         shader.bind();
@@ -241,7 +244,10 @@ public class RenduTuiles {
             shader.setUniformf("u_rueCamera", rues.cameraX, rues.cameraY);
             shader.setUniformf("u_rueTexel", rues.texel());
             shader.setUniformf("u_rueBase", rues.base);
+            shader.setUniformf("u_champDecalage", rues.decalageX, rues.decalageY);
         }
+        shader.setUniformi("u_champs", 6);
+        shader.setUniformf("u_annee", annee);
 
         aTracer.clear();
         for (int face = 0; face < Cube.FACES; face++) {

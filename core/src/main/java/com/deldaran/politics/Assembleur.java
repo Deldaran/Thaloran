@@ -106,10 +106,18 @@ public class Assembleur {
     }
 
     public Apparence tirer(long graine, int espece) {
+        return tirer(graine, espece, -1);
+    }
+
+    public Apparence tirer(long graine, int espece, int sexe) {
         Random r = new Random(graine);
         Apparence a = new Apparence(graine, espece);
         a.femme = r.nextBoolean();
         a.enfant = r.nextFloat() < 0.2f;
+        if (sexe >= 0) {
+            a.femme = sexe == 1;
+            a.enfant = false;
+        }
         a.peau = choisir(r, choix.get("peau." + RACES[espece]));
         int cheveux = choisir(r, choix.get("cheveux"));
         int metal = choisir(r, choix.get("metal"));

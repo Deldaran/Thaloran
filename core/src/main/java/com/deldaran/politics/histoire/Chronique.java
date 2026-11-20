@@ -46,20 +46,20 @@ public class Chronique {
         String debut = "An " + annee[i] + " : ";
         switch (type[i]) {
             case FONDATION: return debut + personne(p, q, i) + " fonde " + a + ".";
-            case SUCCESSION: return debut + personne(p, q, i) + " prend le pouvoir a " + a + ".";
-            case CRISE: return debut + "sans heritier a " + a + ", " + personne(p, q, i) + " prend le trone.";
-            case REGENCE: return debut + "regence a " + a + " pour l'enfant " + personne(p, q, i) + ".";
-            case USURPATION: return debut + personne(p, q, i) + " usurpe le trone de " + a + ".";
+            case SUCCESSION: return debut + personne(p, q, i) + " prend le pouvoir à " + a + ".";
+            case CRISE: return debut + "sans héritier à " + a + ", " + personne(p, q, i) + " prend le trône.";
+            case REGENCE: return debut + "régence à " + a + " pour l'enfant " + personne(p, q, i) + ".";
+            case USURPATION: return debut + personne(p, q, i) + " usurpe le trône de " + a + ".";
 
             case GUERRE: return debut + a + " attaque " + b + (lieu[i] >= 0 ? " pour son " + Economie.NOMS[lieu[i]] : "") + ".";
             case PAIX: return debut + "paix entre " + a + " et " + b + ".";
-            case CONQUETE: return debut + a + " prend une region a " + b + ".";
+            case CONQUETE: return debut + a + " prend une région à " + b + ".";
             case SAC: return debut + a + " met a sac une ville de " + b + " : " + valeur[i] + " morts.";
             case CHUTE: return debut + a + " tombe sous les coups de " + b + ".";
-            case REVOLUTION: return debut + "a " + a + ", le peuple renverse et tue " + personne(p, q, i) + ".";
+            case REVOLUTION: return debut + "à " + a + ", le peuple renverse et tue " + personne(p, q, i) + ".";
 
-            case SECESSION: return debut + a + " fait secession de " + b + ".";
-            default: return debut + a + " s'eteint, faute de successeur.";
+            case SECESSION: return debut + a + " fait sécession de " + b + ".";
+            default: return debut + a + " s'éteint, faute de successeur.";
         }
     }
 

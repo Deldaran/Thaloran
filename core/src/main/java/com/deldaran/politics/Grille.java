@@ -108,6 +108,19 @@ public class Grille {
         }
     }
 
+    public boolean disqueLibre(double a, double b, double rayon) {
+        int i0 = (int) Math.floor(a - rayon) + cote / 2, i1 = (int) Math.floor(a + rayon) + cote / 2;
+        int j0 = (int) Math.floor(b - rayon) + cote / 2, j1 = (int) Math.floor(b + rayon) + cote / 2;
+        if (i0 < 0 || j0 < 0 || i1 >= cote || j1 >= cote) return false;
+        for (int j = j0; j <= j1; j++) {
+            for (int i = i0; i <= i1; i++) {
+                if (Math.hypot(centre(i) - a, centre(j) - b) > rayon + 0.5) continue;
+                if (occupation[j * cote + i] != VIDE) return false;
+            }
+        }
+        return true;
+    }
+
     public void disque(double a, double b, double rayon, byte type) {
         int i0 = Math.max(0, (int) Math.floor(a - rayon) + cote / 2), i1 = Math.min(cote - 1, (int) Math.floor(a + rayon) + cote / 2);
         int j0 = Math.max(0, (int) Math.floor(b - rayon) + cote / 2), j1 = Math.min(cote - 1, (int) Math.floor(b + rayon) + cote / 2);

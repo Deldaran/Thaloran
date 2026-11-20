@@ -60,6 +60,7 @@ public class Population {
     public final int[] mer;
     public final int[][] berceaux = new int[Peuple.NOMBRE][];
     public final Villes villes = new Villes();
+    public final Routes routes;
     public final Economie economie;
     public final Etats etats;
     public final Livres livres;
@@ -84,6 +85,7 @@ public class Population {
         this.regions = regions;
         this.reglages = reglages;
         this.monde = monde;
+        routes = new Routes(monde, reglages.debitVille);
         economie = new Economie(regions, reglages.economie);
         graine = monde.seed;
         livres = new Livres(reglages.livres, graine);
@@ -206,6 +208,14 @@ public class Population {
         }
     }
 
+    /** Distance à vol d'oiseau entre deux villes, en kilomètres. */
+    public float km(int villeA, int villeB) {
+        int a = villes.caseDe[villeA], b = villes.caseDe[villeB];
+        double dx = monde.sphere.x[a] - monde.sphere.x[b], dy = monde.sphere.y[a] - monde.sphere.y[b], dz = monde.sphere.z[a] - monde.sphere.z[b];
+        double corde = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return (float) (2.0 * Math.asin(Math.min(1.0, corde / 2.0)) * Terrain.RAYON_KM);
+    }
+
     private boolean estLoin(Monde monde, int r, IntArray choisis, float seuil) {
         for (int k = 0; k < choisis.size; k++) {
             int a = regions.centre[r], b = regions.centre[choisis.get(k)];
@@ -285,6 +295,10 @@ public class Population {
         }
 
         etats.avancer(this, a);
+        if (a % Villes.PAS_MESURE == 0) {
+            villes.mesurer(a, etats);
+            routes.avancer(this, a);
+        }
         livres.avancer(this, a);
         compter();
         economie.avancer(this);
@@ -360,6 +374,7 @@ public class Population {
             }
         }
         villes.archiver(a);
+        routes.archiver(a);
         economie.archiver(a);
         etats.archiver(a);
         livres.archiver(a);

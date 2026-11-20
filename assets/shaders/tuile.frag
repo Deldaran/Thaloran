@@ -35,6 +35,9 @@ uniform vec3 u_microBase;
 uniform vec3 u_microBase2;
 uniform vec3 u_est;
 uniform vec3 u_nord;
+uniform sampler2D u_champs;
+uniform vec2 u_champDecalage;
+uniform float u_annee;
 
 
 varying vec2 v_texture;
@@ -60,6 +63,8 @@ const float TAILLE_RUE = 1024.0;
 const float PIERRE_RUE = 4.0;
 const float CELLULE_MICRO = 12.0;
 const float AMPLITUDE_MICRO = 4.0;
+const float SILLON = 0.7;
+const float PI = 3.14159265;
 
 float mod289(float x) {
     return x - floor(x / 289.0) * 289.0;
@@ -208,6 +213,74 @@ vec3 solRue(vec2 uv) {
     return vec3(somme > 0.0 ? sommeH / somme + u_rueBase : 0.0, somme, rigole);
 }
 
+// Lot J1 : la terre labourée, en sillons (tr : la distance en travers des sillons, en mètres).
+vec2 labour(float tr, vec2 n, float g, float fin) {
+    float s = fract(tr / SILLON);
+    float i = fin > 0.5 ? (s < 0.3 ? 4.0 : (s < 0.62 ? 2.9 : 1.7)) : 2.9;
+    i += (hasard(floor(n / 2.0) + vec2(41.0, 3.0)) - 0.5) * 0.9 + (g - 0.5) * 0.6;
+    return vec2(2.0, i);
+}
+
+// Lot J1 : les tiges vues en 3/4 : de petits traits verticaux à l'écran, de 3 à 5 pixels.
+float tiges(vec2 n) {
+    float k = floor((n.y + hasard(vec2(n.x, 5.0)) * 4.0) / 4.0);
+    return hasard(vec2(n.x, k) + vec2(17.0, 29.0));
+}
+
+// Lot J1 : un champ de blé au fil de l'année : labour, semis, pousse, blé vert, épis, mûr, moisson et gerbes, chaume, terre d'hiver.
+vec2 cereale(float an, float le, float tr, vec2 n, vec2 p, float g, float fin) {
+    float s = fract(tr / SILLON);
+    float t = tiges(n);
+    if (an < 0.06) return labour(tr, n, g, fin);
+    if (an < 0.12) {
+        if (s < 0.35 && hasard(floor(vec2(le, tr) / 0.12) + vec2(7.0, 70.0)) < 0.08) return vec2(22.0, 3.0);
+        return labour(tr, n, g, fin);
+    }
+    if (an < 0.25) {
+        float c = (an - 0.12) / 0.13;
+        if (abs(s - 0.2) < 0.05 + 0.32 * c && hasard(floor(vec2(le, tr) / 0.1) + vec2(3.0, 33.0)) < 0.45 + 0.55 * c) return vec2(22.0, 2.4 + c * 2.0 + (t - 0.5) * 1.4);
+        return labour(tr, n, g, fin);
+    }
+    float onde = sin(dot(p, vec2(0.31, 0.17)) - u_temps * 1.4) * 0.45 * fin;
+    float creux = s > 0.82 && fin > 0.5 ? -0.9 : 0.0;
+    float relief = (t - 0.5) * 1.6 * fin + onde + creux + (g - 0.5) * 0.5;
+    if (an < 0.36) return vec2(22.0, 3.3 + (an - 0.25) * 8.0 + relief);
+    if (an < 0.47) {
+        float d = (an - 0.36) / 0.11;
+        bool mur = hasard(vec2(floor(n.x), floor(n.y / 3.0)) + vec2(77.0, 1.0)) < d;
+        return vec2(mur ? 18.0 : 22.0, (mur ? 4.6 : 5.2) + relief);
+    }
+    // La moisson : les faucheurs avancent le long des rangs, trois rangs à la fois.
+    float coupe = clamp((an - 0.47) / 0.09, 0.0, 1.0);
+    if (fract(le / 40.0 + hasard(vec2(floor(tr / (SILLON * 3.0)), 3.0))) >= coupe) return vec2(18.0, 5.0 + relief);
+    if (an < 0.68) {
+        vec2 c = vec2(le / 4.0, tr / 3.5);
+        vec2 f = (fract(c) - 0.5) * vec2(4.0, 3.5);
+        if (hasard(floor(c) + vec2(13.0, 2.0)) < 0.7 && length(f * vec2(1.0, 0.8)) < 0.48) return vec2(18.0, f.y > 0.1 ? 6.2 : (f.y > -0.2 ? 4.8 : 2.8));
+    }
+    float hiver = clamp((an - 0.72) / 0.12, 0.0, 1.0);
+    float pointe = hasard(floor(n / vec2(1.0, 2.0)) + vec2(5.0, 61.0)) < 0.18 * fin ? 1.4 : 0.0;
+    // Le chaume : des rangs de tiges coupées, la terre visible entre eux ; l'hiver, la terre nue.
+    if (fin > 0.5 && s > 0.62) return vec2(2.0, 3.0 + (g - 0.5) * 0.6 - hiver * 0.8);
+    float i = 3.0 + (fin > 0.5 && s < 0.2 ? 0.6 : 0.0) + pointe * 1.4 + (g - 0.5) * 0.6 - hiver * 1.6;
+    return vec2(hiver > 0.6 ? 9.0 : 18.0, hiver > 0.6 ? i + 1.7 : i);
+}
+
+// Lot J1 : un potager : des rangs de touffes qui grossissent, puis la récolte et la terre nue de l'hiver.
+vec2 legumes(float an, float le, float tr, vec2 n, float g, float fin) {
+    if (an < 0.08 || an > 0.74) return labour(tr, n, g, fin);
+    float c = clamp((an - 0.08) / 0.3, 0.0, 1.0);
+    float recolte = clamp((an - 0.6) / 0.12, 0.0, 1.0);
+    vec2 cel = vec2(le / 0.6, tr / 0.9);
+    vec2 f = (fract(cel) - 0.5) * vec2(0.6, 0.9);
+    float rayon = (0.08 + 0.24 * c) * (0.75 + 0.5 * hasard(floor(cel) + vec2(4.0, 8.0)));
+    if (hasard(floor(cel) + vec2(31.0, 17.0)) >= recolte && length(f) < rayon) {
+        float tache = hasard(floor(n / 2.0) + vec2(3.0, 3.0));
+        return vec2(hasard(floor(cel) + vec2(1.0, 1.0)) < 0.3 ? 22.0 : 0.0, 3.4 + c * 1.4 + (tache - 0.5) * 1.6 * fin + (f.y > 0.0 ? 0.6 : -0.3) * fin);
+    }
+    return vec2(2.0, 2.6 + (hasard(floor(n / 2.0) + vec2(41.0, 3.0)) - 0.5) * 0.9 + (g - 0.5) * 0.6);
+}
+
 vec3 materiau(float altitude, float temperature, float pluie, float eau, vec4 couverture, float g, float pente, float niveau) {
     float jeu = (couverture.r - 0.5) * 2.0 + (g - 0.5) * 0.5;
     float t = temperature + jeu * 2.5;
@@ -322,6 +395,48 @@ void main() {
     else if (battue) m = vec3(3.0, 2.3, 0.6);
     float lumiere = d.r < 0.0 || m.x == 13.0 ? 0.0 : clamp(-dot(pente, LUMIERE) * RELIEF, -2.5, 2.5) * (1.0 - aplani.y);
     float indice = m.y + (g - 0.5) * m.z * 2.0 + lumiere;
+    // Lot J1 : les champs. La texture dit la sorte, le sens des sillons et la distance au bord ; l'année dit l'étape.
+    float fauche = 0.0;
+    if (uvRue.x > 0.0 && !pave && !battue && m.x != 13.0 && m.x != 14.0 && m.x != 6.0 && m.x != 5.0) {
+        vec2 bouge = (vec2(hasard(floor(n / 2.0) + vec2(5.0, 19.0)), hasard(floor(n / 2.0) + vec2(23.0, 7.0))) - 0.5) * 0.8 / TAILLE_RUE;
+        vec4 champ = texture2D(u_champs, uvRue + bouge);
+        float bord = champ.a * 25.5;
+        if (bord > 0.3) {
+            float code = floor(champ.g * 255.0 + 0.5);
+            float sorte = floor(code / 32.0);
+            float variante = (code - sorte * 32.0) / 32.0;
+            float angle = champ.b * PI;
+            vec2 ec = (gl_FragCoord.xy - u_centre) * u_metresPixel;
+            vec2 pos = u_rueCamera + vec2(u_rotation.x * ec.x + u_rotation.y * ec.y, -u_rotation.y * ec.x + u_rotation.x * ec.y) + u_champDecalage;
+            vec2 sens = vec2(cos(angle), sin(angle));
+            float le = dot(pos, sens);
+            float tr = dot(pos, vec2(-sens.y, sens.x));
+            float an = fract(u_annee + (variante - 0.5) * 0.08);
+            float fin = clamp((0.32 - u_metresPixel) / 0.12, 0.0, 1.0);
+            vec2 r = vec2(-1.0);
+            if (sorte < 0.5) r = cereale(an, le, tr, n, p, g, fin);
+            else if (sorte < 1.5) r = legumes(an, le, tr, n, g, fin);
+            else if (sorte < 2.5) {
+                // Le pré : de l'herbe, fauchée au début de l'été ; le foin sèche en andains, puis l'herbe repousse.
+                m = vec3(0.0, 3.8, 1.6);
+                fauche = an > 0.33 && an < 0.6 ? (an < 0.48 ? 0.75 : 0.75 * (0.6 - an) / 0.12) : 0.0;
+                if (an > 0.36 && an < 0.46 && fract(tr / 3.0) < 0.16) r = vec2(18.0, 4.4 + (tiges(n) - 0.5) * 1.4);
+                else indice = m.y + (g - 0.5) * 1.2 + lumiere;
+            } else if (sorte < 3.5) {
+                m = vec3(0.0, 3.6, 1.6);
+                indice = m.y + (g - 0.5) * 1.2 + lumiere;
+            } else {
+                // La friche : de grandes herbes sèches, où l'on devine encore les anciens sillons.
+                m = vec3(1.0, 3.4, 1.8);
+                indice = m.y + (g - 0.5) * 1.6 + lumiere + (fract(tr / SILLON) < 0.3 ? 0.4 : 0.0) * fin;
+            }
+            if (r.x >= 0.0) {
+                if (bord < 0.55 && sorte < 1.5) r = vec2(2.0, 2.0 + (g - 0.5) * 0.6);
+                m.x = r.x;
+                indice = r.y + lumiere * 0.5;
+            }
+        }
+    }
     if (pave) {
         vec2 w = worley(p / 0.32, 0.0);
         indice += w.y - w.x < 0.12 ? -1.8 : (hasard(floor(p / 0.32) + vec2(9.0, 4.0)) - 0.5) * 0.9 + 0.3;
@@ -344,7 +459,7 @@ void main() {
         if (uv.x > 0.0 && uv.y > 0.0 && uv.x < 1.0 && uv.y < 1.0) trace = texture2D(u_traces, uv).rgb;
     }
     float usure = trace.r * 1.2 + trace.b * 2.0 + trace.g * 0.5;
-    float ecrase = clamp(usure * 1.5, 0.0, 1.0);
+    float ecrase = max(clamp(usure * 1.5, 0.0, 1.0), fauche);
     float arrache = clamp((usure - 0.25) * 1.3, 0.0, 1.0);
     bool pre = m.x == 0.0 || m.x == 1.0 || m.x == 8.0 || m.x == 10.0 || m.x == 11.0;
     if (pre && u_metresPixel < SEUIL_HERBE && u_plat > 0.99) {
@@ -459,7 +574,7 @@ void main() {
     }
 
     float colonne = clamp(floor(indice + 0.5), 0.0, 7.0);
-    vec3 couleur = texture2D(u_palette, vec2((colonne + 0.5) / 8.0, (m.x + 0.5) / 16.0)).rgb;
+    vec3 couleur = texture2D(u_palette, vec2((colonne + 0.5) / 8.0, (m.x + 0.5) / 24.0)).rgb;
     float ombre = mix(0.45, 1.0, sqrt(sqrt(1.0 - distance2)));
 
     vec3 sortie = couleur * ombre;

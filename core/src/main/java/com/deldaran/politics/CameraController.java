@@ -8,14 +8,14 @@ public class CameraController extends InputAdapter {
     private static final double FACTEUR_ZOOM = 1.15;
 
     private final GameCamera camera;
-    public boolean libre = true;
+    public boolean libre = true, bloque;
 
     public CameraController(GameCamera camera) {
         this.camera = camera;
     }
 
     public void update(float delta) {
-        if (!libre) return;
+        if (!libre || bloque) return;
         double pas = camera.vitessePixels * delta;
         double x = 0.0, y = 0.0;
         if (Gdx.input.isKeyPressed(Input.Keys.W)) y += 1.0;

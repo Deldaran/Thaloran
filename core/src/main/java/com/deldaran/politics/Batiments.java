@@ -22,12 +22,21 @@ public class Batiments {
     private static final int[] BAYER = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
     private static final int CACHE_MAX = 4096;
     private static final int ENVOIS_PAR_IMAGE = 6;
-
     private static final double OMBRE_PORTEE = 5.0;
     private static final int TROU = 1000;
 
     public static final int CHAUMIERE = 0, COLOMBAGES = 1, PIERRE = 2, RONDINS = 3, LONGERE = 4, HALLE = 5;
-    public static final int ARCHE = 6, PONTON = 7, TONNEAUX = 8, CAISSES = 9, BARRIERE = 10, PORTAIL = 11, PUITS = 12, ETAL = 13;
+    public static final int ARCHE = 6, PONTON = 7, TONNEAUX = 8, CAISSES = 9, BARRIERE = 10, PORTAIL = 11, PUITS = 12, ETAL = 13, TABLEAU = 14;
+    /** Le mobilier des campements de brigands. */
+    public static final int TENTE = 15, FEU = 16;
+    /** Lot G3 : la roue à aubes et les ailes d'un moulin, objets à part qui tournent ; PHASES_MOULIN positions peintes chacun. */
+    public static final int ROUE_EAU = 17, AILES = 18, PHASES_MOULIN = 4;
+    /** Lot G3 : un loup (variante = pas + 4 × pelage : 4 pas, 2 pelages). */
+    public static final int LOUP = 19, PAS_LOUP = 4;
+    /** Rangées de la palette (palettes/sol.png) : 0-15 le monde d'origine ; 16 feu, 17 sang, 18 or terni, 19 pourpre, 20 indigo,
+     *  21 lueur spectrale, 22 bile, 23 os et parchemin. Chaque rangée : 8 teintes, de la plus sombre à la plus claire. */
+    public static final int RANGEES = 24;
+    public static final int R_FEU = 16, R_SANG = 17, R_OR = 18, R_POURPRE = 19, R_INDIGO = 20, R_SPECTRE = 21, R_BILE = 22, R_OS = 23;
     public static final int ANGLES = 16;
     private static final double TOUR_AVANT = 2.9, TOUR_ARRIERE = 0.3, TOUR_DEMI = 1.6;
     private static final int UNI = 0, BLOCS = 1, PLANCHES = 2, TRONCS = 3, CHAUME = 4, TUILES = 5, CREPI = 6, VITRE = 7, INTERIEUR = 8;
@@ -41,6 +50,46 @@ public class Batiments {
         public long graine;
         public int metier;
         public boolean roue;
+        public boolean ruine, delabre;
+        public double age;
+        /** Lot G3 : la position de rotation d'une roue ou des ailes (0 à PHASES_MOULIN − 1). */
+        public int phase;
+        /** Lot G5 : un chantier du joueur (peint comme des murs à demi montés) ; ce n'est pas une ruine où l'on peut bâtir. */
+        public boolean chantier;
+        /** Lot H2 : un bâtiment du joueur (terrain libre ou ruine rebâtie) : ses ouvriers y travaillent. */
+        public boolean joueur;
+
+        public Plan ruiner() {
+            return ruiner(false, 0.0);
+        }
+
+        public Plan ruiner(boolean delabre, double age) {
+            Plan q = new Plan();
+            q.style = style;
+            q.largeur = largeur;
+            q.profondeur = profondeur;
+            q.murs = murs;
+            q.pente = pente;
+            q.debord = debord;
+            q.angle = angle;
+            q.etage = etage;
+            q.cheminee = cheminee;
+            q.appentis = appentis;
+            q.bois = bois;
+            q.tonneau = tonneau;
+            q.tour = tour;
+            q.usure = usure;
+            q.porteX = porteX;
+            q.porteL = porteL;
+            q.porteH = porteH;
+            q.graine = graine;
+            q.metier = metier;
+            q.roue = roue;
+            q.ruine = true;
+            q.delabre = delabre;
+            q.age = age;
+            return q;
+        }
 
         public void orienter(double yaw) {
             double pas = 2.0 * Math.PI / ANGLES;
@@ -48,7 +97,7 @@ public class Batiments {
         }
 
         public long cle() {
-            return graine * 0x9E3779B97F4A7C15L + Math.round(angle * 4096.0) * 7919L + style + metier * 104729L + (roue ? 15485863L : 0L);
+            return graine * 0x9E3779B97F4A7C15L + Math.round(angle * 4096.0) * 7919L + style + metier * 104729L + (roue ? 15485863L : 0L) + (ruine ? 0x5DEECE66DL : 0L) + (delabre ? 0x2545F491L : 0L) + Math.round(Math.min(age, 400.0) / 40.0) * 0x9E3779L;
         }
 
         public double annexe() {
@@ -66,7 +115,7 @@ public class Batiments {
         }
 
         public boolean bloque(double est, double nord, double rayon) {
-            if (style == ARCHE || style == PONTON || style == PORTAIL) return false;
+            if (style == ARCHE || style == PONTON || style == PORTAIL || style == AILES || style == LOUP) return false;
             double c = Math.cos(angle), s = Math.sin(angle);
             double sud = -nord;
             double x = est * c - sud * s, z = est * s + sud * c;
@@ -133,7 +182,7 @@ public class Batiments {
         double[][] trous;
     }
 
-    private final int[][] palette = new int[16][8];
+    private final int[][] palette = new int[RANGEES][8];
     private final Map<Long, Image> cache = new LinkedHashMap<>(64, 0.75f, true);
     private final Map<Long, Future<Rendu>> enCours = new HashMap<>();
     private ExecutorService ouvrier;
@@ -144,7 +193,7 @@ public class Batiments {
 
     public Batiments() {
         Pixmap p = new Pixmap(Gdx.files.internal("palettes/sol.png"));
-        for (int r = 0; r < 16; r++) for (int c = 0; c < 8; c++) palette[r][c] = p.getPixel(c, r) >>> 8;
+        for (int r = 0; r < RANGEES; r++) for (int c = 0; c < 8; c++) palette[r][c] = p.getPixel(c, r) >>> 8;
         p.dispose();
         ateliers = ThreadLocal.withInitial(() -> new Batiments(palette));
         ouvrier = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2), r -> {
@@ -155,7 +204,7 @@ public class Batiments {
     }
 
     public Batiments(int[][] palette) {
-        for (int r = 0; r < 16; r++) System.arraycopy(palette[r], 0, this.palette[r], 0, 8);
+        for (int r = 0; r < RANGEES; r++) System.arraycopy(palette[r], 0, this.palette[r], 0, 8);
     }
 
     public Image image(Plan plan) {
@@ -406,6 +455,7 @@ public class Batiments {
         p.profondeur = Math.round(profondeur * 10.0) / 10.0;
         p.murs = Math.round(murs * 10.0) / 10.0;
         p.angle = angle;
+        p.phase = variante;
         long g = style * 1000003L + Math.round(p.largeur * 10.0) * 7919L + Math.round(p.profondeur * 10.0) * 104729L + Math.round(p.murs * 10.0) * 1299709L + variante * 15485863L;
         g ^= g >>> 33;
         g *= 0xff51afd7ed558ccdL;
@@ -702,6 +752,10 @@ public class Batiments {
         porte = new Matiere(r.nextBoolean() ? 9 : 2, 0.9, 2.6, 0.2, PLANCHES);
         vitre = new Matiere(r.nextFloat() < 0.5f ? 13 : 10, 0.0, 1.0, 1.2, VITRE);
         fer = new Matiere(5, 0.8, 3.2, 1.6, UNI);
+        if (p.ruine) {
+            ruine(p, r, pierre);
+            return;
+        }
         if (p.style >= ARCHE) {
             objet(p, r, bois, poutre, pierre, fer);
             return;
@@ -886,6 +940,80 @@ public class Batiments {
         if (p.metier != Metiers.MAISON) atelier(p, r, dx, dz, h, faite, pierre, bois, poutre, fer);
     }
 
+    private void ruine(Plan p, Random r, Matiere pierre) {
+        double dx = p.largeur / 2.0, dz = p.profondeur / 2.0, h = p.murs;
+        boolean delabre = p.delabre;
+        double tenue = Math.max(0.35, 1.0 - p.age / 400.0);
+        Matiere charbon = delabre ? new Matiere(9, 1.7, 2.4, 0.0, PLANCHES) : new Matiere(9, -0.35, 0.9, 0.0, TRONCS);
+        Matiere braise = !delabre && p.age < 12.0 ? new Matiere(9, -0.15, 1.1, 0.0, PLANCHES) : charbon;
+        Matiere cendre = delabre ? new Matiere(pierre.rangee, 0.8, 2.2, 0.0, BLOCS) : new Matiere(5, 0.7, 1.6, 0.0, UNI);
+        Matiere suie = delabre ? pierre : new Matiere(pierre.rangee, 0.3, 1.6, 0.1, BLOCS);
+        Matiere torchis = delabre ? new Matiere(3, 1.2, 2.6, 0.0, CREPI) : new Matiere(3, 0.0, 1.1, 0.0, CREPI);
+        Matiere crete = delabre ? null : charbon;
+        if (p.style >= ARCHE) {
+            boite(-dx * 0.8, dx * 0.8, 0.0, 0.08, -dz * 0.8, dz * 0.8, cendre);
+            for (int k = 0; k < 3; k++) {
+                double x = (r.nextDouble() - 0.5) * dx, z = (r.nextDouble() - 0.5) * dz;
+                boite(x - 0.25, x + 0.25, 0.0, 0.12 + r.nextDouble() * 0.1, z - 0.06, z + 0.06, charbon);
+            }
+            return;
+        }
+        boolean maconne = p.style == PIERRE || p.style == HALLE;
+        double ep = maconne ? 0.42 : 0.24;
+        double hautMax = (maconne ? h * 0.9 : p.style == COLOMBAGES ? 1.5 : p.style == RONDINS ? 1.1 : 0.9) * tenue;
+        Matiere mur = maconne ? suie : p.style == RONDINS ? charbon : torchis;
+        if (!delabre && p.age < 30.0) boite(-dx, dx, 0.0, 0.12, -dz, dz, cendre);
+        for (int cote = 0; cote < 4; cote++) {
+            boolean long_ = cote < 2;
+            double longueur = long_ ? p.largeur : p.profondeur;
+            double fixe = long_ ? (cote == 0 ? dz - ep / 2 : -dz + ep / 2) : (cote == 2 ? dx - ep / 2 : -dx + ep / 2);
+            double t = -longueur / 2.0;
+            while (t < longueur / 2.0 - 0.05) {
+                double l = Math.min(longueur / 2.0 - t, 0.5 + r.nextDouble() * 0.8);
+                boolean porte = cote == 0 && t + l > p.porteX - p.porteL && t < p.porteX + p.porteL;
+                double haut = maconne ? hautMax * (0.35 + 0.65 * r.nextDouble()) : r.nextDouble() < 0.35 ? 0.0 : hautMax * (0.15 + 0.85 * r.nextDouble());
+                if (porte) haut = 0.0;
+                if (haut > 0.15) {
+                    Solide s = long_ ? boite(t, t + l, 0.0, haut, fixe - ep / 2, fixe + ep / 2, mur) : boite(fixe - ep / 2, fixe + ep / 2, 0.0, haut, t, t + l, mur);
+                    s.dessus = crete;
+                }
+                t += l;
+            }
+        }
+        if (!maconne) {
+            for (int k = -1; k <= 1; k += 2) {
+                for (int q = -1; q <= 1; q += 2) {
+                    if (r.nextDouble() < 0.25 || (delabre && r.nextDouble() * 150.0 < p.age)) continue;
+                    double haut = (1.0 + r.nextDouble() * (h - 0.6)) * tenue;
+                    boite(k * dx - 0.11, k * dx + 0.11, 0.0, haut, q * dz - 0.11, q * dz + 0.11, charbon);
+                }
+            }
+        }
+        int poutres = delabre ? (int) Math.max(0, 3 - p.age / 60.0) + r.nextInt(2) : 3 + r.nextInt(4);
+        for (int k = 0; k < poutres; k++) {
+            double y = 0.12 + r.nextDouble() * 0.3;
+            double c = (r.nextDouble() - 0.5) * 2.0;
+            if (r.nextBoolean()) {
+                double z = c * dz * 0.8, l = dx * (0.5 + r.nextDouble() * 0.6), x = (r.nextDouble() - 0.5) * dx;
+                boite(x - l, x + l, y, y + 0.16, z - 0.09, z + 0.09, r.nextDouble() < 0.3 ? braise : charbon);
+            } else {
+                double x = c * dx * 0.8, l = dz * (0.5 + r.nextDouble() * 0.6), z = (r.nextDouble() - 0.5) * dz;
+                boite(x - 0.09, x + 0.09, y, y + 0.16, z - l, z + l, r.nextDouble() < 0.3 ? braise : charbon);
+            }
+        }
+        int tas = 2 + r.nextInt(3);
+        for (int k = 0; k < tas; k++) {
+            double x = (r.nextDouble() - 0.5) * dx * 1.2, z = (r.nextDouble() - 0.5) * dz * 1.2;
+            double a = 0.3 + r.nextDouble() * 0.5;
+            boite(x - a, x + a, 0.0, 0.2 + r.nextDouble() * 0.25, z - a * 0.8, z + a * 0.8, r.nextBoolean() ? cendre : maconne ? suie : charbon);
+        }
+        if (p.cheminee) {
+            double cx = (r.nextBoolean() ? -1 : 1) * dx * 0.6, cz = -dz * 0.35;
+            double haut = h + dz * Math.tan(p.pente) * (0.5 + r.nextDouble() * 0.5);
+            boite(cx - 0.32, cx + 0.32, 0.0, haut * Math.max(0.5, tenue), cz - 0.32, cz + 0.32, suie).dessus = crete;
+        }
+    }
+
     private void atelier(Plan p, Random r, double dx, double dz, double h, double faite, Matiere pierre, Matiere bois, Matiere poutre, Matiere fer) {
         int m = p.metier;
         if (Metiers.ENSEIGNE[m] >= 0) {
@@ -917,14 +1045,9 @@ public class Batiments {
                 break;
             }
             case Metiers.MOULIN:
-                if (p.roue) roue(dx + 0.35, 1.75, 0.0, 1.7, bois);
-                else {
-                    Matiere toile = new Matiere(3, 2.4, 3.0, 0.2, PLANCHES);
-                    double yc = h - 0.4, z0 = dz + 0.25, z1 = dz + 0.35;
-                    bras(0.0, yc, Math.PI / 4.0, 7.0, 0.55, z0, z1, toile);
-                    bras(0.0, yc, -Math.PI / 4.0, 7.0, 0.55, z0, z1, toile);
-                    octogone(0.0, dz + 0.15, 0.22, yc - 0.22, yc + 0.22, poutre);
-                }
+                // Lot G3 : la roue et les ailes tournent ; ce sont des objets à part (ROUE_EAU, AILES), posés par l'écran à chaque image.
+                // Il ne reste ici que l'axe de la roue, qui sort du mur.
+                if (p.roue) octogone(dx + 0.1, 0.0, 0.16, 1.6, 1.9, sombre);
                 break;
             case Metiers.TANNERIE:
                 for (int k = -1; k <= 1; k++) octogone(k * 1.2, dz + 1.0, 0.45, 0.0, 0.55, bois).dessus = new Matiere(9, 0.6, 2.0, 0.2, UNI);
@@ -957,6 +1080,19 @@ public class Batiments {
         s.d = new double[] { pu + longueur * 0.5, -(pu - longueur * 0.5), pv + largeur * 0.5, -(pv - largeur * 0.5), z1, -z0 };
         double e = longueur * 0.5 + largeur;
         borner(s, cx - e, cx + e, cy - e, cy + e, z0, z1);
+        s.m = m;
+        solides.add(s);
+    }
+
+    /** Lot G3 : une barre dans le plan (y, z), d'axe x entre x0 et x1, centrée en (cy, cz), tournée de « angle ». */
+    private void rais(double x0, double x1, double cy, double cz, double angle, double longueur, double largeur, Matiere m) {
+        double uy = Math.cos(angle), uz = Math.sin(angle), vy = -uz, vz = uy;
+        double pu = uy * cy + uz * cz, pv = vy * cy + vz * cz;
+        Solide s = new Solide();
+        s.n = new double[][] { { 0, uy, uz }, { 0, -uy, -uz }, { 0, vy, vz }, { 0, -vy, -vz }, { 1, 0, 0 }, { -1, 0, 0 } };
+        s.d = new double[] { pu + longueur * 0.5, -(pu - longueur * 0.5), pv + largeur * 0.5, -(pv - largeur * 0.5), x1, -x0 };
+        double e = longueur * 0.5 + largeur;
+        borner(s, x0, x1, cy - e, cy + e, cz - e, cz + e);
         s.m = m;
         solides.add(s);
     }
@@ -1049,6 +1185,7 @@ public class Batiments {
             solides.add(s);
         }
     }
+
     private void objet(Plan p, Random r, Matiere bois, Matiere poutre, Matiere pierre, Matiere fer) {
         double dx = p.largeur / 2.0, dz = p.profondeur / 2.0, h = p.murs;
         Matiere planche = new Matiere(9, 1.5, 3.0, 0.2, PLANCHES);
@@ -1117,6 +1254,112 @@ public class Batiments {
                 borner(s, -dx - 0.1, dx + 0.1, 1.0, 2.4, -dz - 0.1, dz + 0.2);
                 s.m = toile;
                 solides.add(s);
+                break;
+            }
+            case TABLEAU: {
+                // Le tableau des annonces : deux poteaux, un panneau de planches, un petit toit, des affiches sur les deux faces.
+                Matiere papier = new Matiere(3, 2.6, 3.0, 0.0, UNI);
+                Matiere auvent = new Matiere(r.nextBoolean() ? 9 : 4, 0.9, 3.2, 0.2, PLANCHES);
+                boite(-dx, -dx + 0.14, 0.0, 2.2, -0.07, 0.07, poutre);
+                boite(dx - 0.14, dx, 0.0, 2.2, -0.07, 0.07, poutre);
+                boite(-dx + 0.1, dx - 0.1, 0.85, 1.95, -0.04, 0.04, bois);
+                pyramide(0.0, 0.0, dx + 0.15, 0.35, 2.15, Math.toRadians(35), auvent);
+                int n = 5 + r.nextInt(4);
+                for (int k = 0; k < n; k++) {
+                    double l = 0.18 + r.nextDouble() * 0.14, ht = 0.22 + r.nextDouble() * 0.14;
+                    double x = -dx + 0.2 + r.nextDouble() * (2.0 * dx - 0.4 - l), y = 0.95 + r.nextDouble() * (0.9 - ht);
+                    double cote = k % 2 == 0 ? 1.0 : -1.0;
+                    boite(x, x + l, y, y + ht, cote > 0 ? 0.04 : -0.06, cote > 0 ? 0.06 : -0.04, papier);
+                }
+                break;
+            }
+            case TENTE: {
+                // Une tente de toile : un prisme couché sur deux mâts ; l'entrée, sombre, est sur la face +x (tournée vers le feu).
+                int[] toiles = { 3, R_SANG, 12, R_INDIGO };
+                Matiere toile = new Matiere(toiles[(int) ((p.graine >>> 9) & 3)], 1.6, 3.0, 0.2, UNI);
+                double l = Math.hypot(dz, h), pan = h * dz / l;
+                Solide s = new Solide();
+                s.n = new double[][] { { 1, 0, 0 }, { -1, 0, 0 }, { 0, -1, 0 }, { 0, dz / l, h / l }, { 0, dz / l, -h / l } };
+                s.d = new double[] { dx, dx, 0.0, pan, pan };
+                borner(s, -dx, dx, 0.0, h, -dz, dz);
+                s.m = toile;
+                solides.add(s);
+                double e = 0.6;
+                Solide o = new Solide();
+                o.n = new double[][] { { 1, 0, 0 }, { -1, 0, 0 }, { 0, -1, 0 }, { 0, dz / l, h / l }, { 0, dz / l, -h / l } };
+                o.d = new double[] { dx + 0.02, -(dx - 0.05), 0.0, pan * e, pan * e };
+                borner(o, dx - 0.05, dx + 0.02, 0.0, h * e, -dz * e, dz * e);
+                o.m = sombre;
+                solides.add(o);
+                for (int i = -1; i <= 1; i += 2) boite(i * dx - 0.04, i * dx + 0.04, 0.0, h + 0.18, -0.04, 0.04, poutre);
+                break;
+            }
+            case ROUE_EAU: {
+                // Une roue à aubes (axe selon x) : quatre rais qui la traversent et huit pales ; chaque phase la tourne de 45° ÷ PHASES_MOULIN.
+                Matiere roueBois = new Matiere(9, 1.2, 2.6, 0.2, PLANCHES);
+                double rc = 1.7, yc = 1.75, a0 = p.phase * Math.PI / 4.0 / PHASES_MOULIN;
+                for (int k = 0; k < 4; k++) rais(-0.05, 0.05, yc, 0.0, a0 + k * Math.PI / 4.0, rc * 2.0 - 0.3, 0.1, roueBois);
+                for (int k = 0; k < 8; k++) {
+                    double a = a0 + k * Math.PI / 4.0;
+                    rais(-0.18, 0.18, yc + Math.cos(a) * (rc - 0.3), Math.sin(a) * (rc - 0.3), a, 0.6, 0.08, roueBois);
+                    double b = a + Math.PI / 8.0;
+                    rais(-0.16, -0.1, yc + Math.cos(b) * (rc - 0.05), Math.sin(b) * (rc - 0.05), b + Math.PI / 2.0, 0.72, 0.08, roueBois);
+                    rais(0.1, 0.16, yc + Math.cos(b) * (rc - 0.05), Math.sin(b) * (rc - 0.05), b + Math.PI / 2.0, 0.72, 0.08, roueBois);
+                }
+                octogone(0.0, 0.0, 0.2, yc - 0.2, yc + 0.2, sombre);
+                break;
+            }
+            case LOUP: {
+                // Un loup, la tête vers +x : corps, poitrail, tête et museau, oreilles, yeux qui luisent, queue basse ; les pattes avancent
+                // tour à tour (phase % PAS_LOUP) ; le pelage est gris ou brun (phase / PAS_LOUP).
+                int pas = p.phase % PAS_LOUP;
+                Matiere poil = p.phase / PAS_LOUP == 0 ? new Matiere(5, 1.1, 2.6, 0.4, UNI) : new Matiere(9, 0.9, 2.4, 0.4, UNI);
+                Matiere clair = new Matiere(5, 2.0, 2.4, 0.3, UNI);
+                Matiere yeux = new Matiere(R_FEU, 5.6, 1.6, 0.6, UNI);
+                boite(-0.45, 0.3, 0.38, 0.66, -0.14, 0.14, poil);
+                boite(0.18, 0.44, 0.36, 0.74, -0.16, 0.16, poil);
+                boite(0.4, 0.66, 0.6, 0.84, -0.12, 0.12, poil);
+                boite(0.64, 0.84, 0.6, 0.71, -0.06, 0.06, clair);
+                boite(0.46, 0.55, 0.84, 0.97, -0.11, -0.04, poil);
+                boite(0.46, 0.55, 0.84, 0.97, 0.04, 0.11, poil);
+                boite(0.65, 0.68, 0.74, 0.77, -0.09, -0.05, yeux);
+                boite(0.65, 0.68, 0.74, 0.77, 0.05, 0.09, yeux);
+                bras(-0.62, 0.52, 0.52, 0.44, 0.1, -0.05, 0.05, poil);
+                double[] balance = { 0.09, 0.0, -0.09, 0.0 };
+                double a = balance[pas], b = balance[(pas + 2) % PAS_LOUP];
+                double[][] pattes = { { 0.3, -0.1, a }, { 0.3, 0.1, b }, { -0.35, -0.1, b }, { -0.35, 0.1, a } };
+                for (double[] q : pattes) boite(q[0] + q[2] - 0.045, q[0] + q[2] + 0.045, 0.0, 0.44, q[1] - 0.045, q[1] + 0.045, poil);
+                break;
+            }
+            case AILES: {
+                // Les ailes d'un moulin à vent (dans le plan de la façade) : deux bras croisés, quatre toiles ; chaque phase les tourne de 90° ÷ PHASES_MOULIN.
+                Matiere toile = new Matiere(3, 2.4, 3.0, 0.2, PLANCHES);
+                double yc = h - 0.4, a0 = p.phase * Math.PI / 2.0 / PHASES_MOULIN;
+                bras(0.0, yc, Math.PI / 4.0 + a0, 7.0, 0.55, 0.0, 0.1, toile);
+                bras(0.0, yc, -Math.PI / 4.0 + a0, 7.0, 0.55, 0.0, 0.1, toile);
+                octogone(0.0, -0.1, 0.22, yc - 0.22, yc + 0.22, poutre);
+                break;
+            }
+            case FEU: {
+                // Un feu de camp : un cercle de pierres, deux bûches croisées, un lit de braises et des flammes (la variante change leur forme).
+                Matiere caillou = new Matiere(5, 1.0, 3.0, 0.3, UNI);
+                Matiere buche = new Matiere(9, 0.8, 2.4, 0.2, TRONCS);
+                Matiere braise = new Matiere(R_FEU, 3.6, 2.2, 0.4, UNI);
+                Matiere flamme = new Matiere(R_FEU, 5.6, 1.6, 0.6, UNI);
+                for (int k = 0; k < 9; k++) {
+                    double a = k * Math.PI * 2.0 / 9.0;
+                    octogone(Math.cos(a) * 0.55, Math.sin(a) * 0.55, 0.11 + r.nextDouble() * 0.04, 0.0, 0.12 + r.nextDouble() * 0.06, caillou);
+                }
+                boite(-0.42, 0.42, 0.0, 0.12, -0.07, 0.07, buche);
+                boite(-0.07, 0.07, 0.04, 0.16, -0.42, 0.42, buche);
+                octogone(0.0, 0.0, 0.3, 0.0, 0.1, braise);
+                // Des langues de feu fines et hautes, autour d'un petit cœur clair.
+                pyramide(0.0, 0.0, 0.1, 0.1, 0.1, Math.toRadians(72), flamme);
+                for (int k = 0; k < 5; k++) {
+                    double a = k * Math.PI * 2.0 / 5.0 + r.nextDouble() * 0.8, d = 0.08 + r.nextDouble() * 0.12;
+                    double cote = 0.06 + r.nextDouble() * 0.03, haut = 0.3 + r.nextDouble() * 0.3;
+                    pyramide(Math.cos(a) * d, Math.sin(a) * d, cote, cote, 0.1, Math.atan(haut / cote), braise);
+                }
                 break;
             }
             case PUITS: {

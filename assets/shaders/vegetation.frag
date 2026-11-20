@@ -13,6 +13,7 @@ uniform float u_neige;
 
 uniform float u_masque;
 uniform vec4 u_silhouette;
+uniform vec3 u_feu;
 
 varying vec4 v_color;
 varying vec2 v_texCoords;
@@ -71,6 +72,25 @@ void main() {
     }
     vec2 base = floor(p);
     vec4 c = lire(p);
+    if (u_feu.x + u_feu.y + u_feu.z > 0.0 && c.a > 0.0) {
+        vec2 px = floor(p);
+        float bruit = fract(sin(dot(floor(px / 3.0), vec2(12.9898, 78.233))) * 43758.5453);
+        float fin = fract(sin(dot(px, vec2(39.346, 11.135))) * 24634.6345);
+        float haut = 1.0 - px.y / u_taille.y;
+        float niveau = 1.0 - u_feu.y * 0.45 + (bruit - 0.5) * 0.12 * u_feu.y;
+        if (haut > niveau) discard;
+        if (haut > niveau - 0.08 && fin < u_feu.y * 0.55) discard;
+        if (c.a <= 0.9) c.a *= 1.0 - u_feu.y * 0.6;
+        if (c.a > 0.9) {
+            float lum = dot(c.rgb, vec3(0.3, 0.55, 0.15));
+            vec3 charbon = vec3(0.07, 0.055, 0.05) + lum * vec3(0.22, 0.19, 0.17);
+            c.rgb = mix(c.rgb, charbon, clamp(u_feu.x * (0.7 + 0.5 * bruit), 0.0, 1.0));
+            float vacille = 0.7 + 0.3 * sin(u_temps * 7.0 + bruit * 30.0);
+            float bord = clamp(1.0 - (niveau - haut) * 5.0, 0.0, 1.0) * step(0.45, bruit) * step(0.05, u_feu.y);
+            float ardent = clamp(step(1.0 - u_feu.z * 0.07, fin) * step(0.5, bruit) + bord, 0.0, 1.0);
+            c.rgb += vec3(1.0, 0.38, 0.06) * u_feu.z * vacille * (0.08 + 0.75 * ardent);
+        }
+    }
     if (u_neige > 0.0 && force > 0.0 && c.a > 0.5) {
         float a1 = texture2D(u_texture, (base + vec2(0.5, -0.5)) / u_taille).a;
         float a2 = texture2D(u_texture, (base + vec2(0.5, -1.5)) / u_taille).a;

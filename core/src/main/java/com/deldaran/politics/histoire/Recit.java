@@ -31,7 +31,7 @@ public final class Recit {
     private static String de(String nom) {
         return ("AEIOUYaeiouy".indexOf(nom.charAt(0)) >= 0 ? "d'" : "de ") + nom;
     }
-    private static String du(String famille) {
+    static String du(String famille) {
         return famille.startsWith("le ") ? "du " + famille.substring(3) : "de " + famille;
     }
 
@@ -65,7 +65,7 @@ public final class Recit {
         return debut + phrase;
     }
 
-    private static String rang(Population p, int e, boolean femme) {
+    static String rang(Population p, int e, boolean femme) {
         return RANGS[p.etats.peuple[e]][femme ? 1 : 0];
     }
 
@@ -278,7 +278,7 @@ public final class Recit {
         boolean femme = p.maisons.sexeDe(id) == 1;
         String nom = Noms.personne(q, p.graine, id, femme ? 1 : 0);
         String pays = Noms.ville(q, p.graine, e.capitale[t.etat]);
-        int duree = p.annee - p.maisons.debut[e.regne[t.etat]];
+        int duree = p.annee - (id == t.id ? e.debutRegne[t.etat] : p.maisons.debut[e.regne[t.etat]]);
         String depuis = duree <= 1 ? "depuis peu" : "depuis " + duree + " ans";
         if (id == t.id) return "Ici, c'est moi qui gouverne, " + depuis + ". " + majuscule(pays) + " m'obéit.";
         String texte = "Nous dépendons " + de(pays) + ". " + majuscule(rang(p, t.etat, femme)) + " " + nom + ", " + du(nomMaison(p, e.maison[t.etat])) + ", y règne " + depuis + ".";

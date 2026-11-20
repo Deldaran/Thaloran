@@ -39,6 +39,8 @@ public class Meteo {
     private Texture texture;
     private volatile boolean pret, nouvelle;
     private volatile boolean arret;
+    /** Le fil qui calcule la météo ; dispose() l'attend avant de libérer l'image où il écrit. */
+    private final Thread ouvrier;
     private double temps;
     private double avance;
     public int forcage;
@@ -51,7 +53,7 @@ public class Meteo {
     public Meteo(Terrain terrain) {
         this.terrain = terrain;
         this.graine = terrain.graine + 9100;
-        Thread ouvrier = new Thread(this::travailler);
+        ouvrier = new Thread(this::travailler);
         ouvrier.setDaemon(true);
         ouvrier.start();
     }
@@ -92,7 +94,11 @@ public class Meteo {
                 neigeSol[k] = point.temperature < -5f ? 1f : 0f;
             }
         }
-        for (int n = 0; n < PAS_DEMARRAGE; n++) pas(PAS);
+        for (int n = 0; n < PAS_DEMARRAGE; n++) {
+            if (arret) return;
+            pas(PAS);
+        }
+        if (arret) return;
         ecrire();
         pret = true;
         long suivant = System.nanoTime();
@@ -100,6 +106,7 @@ public class Meteo {
             if (avance >= PAS) {
                 avance -= PAS;
                 pas(PAS);
+                if (arret) return;
                 ecrire();
             } else {
                 suivant += 20_000_000L;
@@ -292,6 +299,12 @@ public class Meteo {
 
     public void dispose() {
         arret = true;
+        ouvrier.interrupt();
+        try {
+            ouvrier.join(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         image.dispose();
         if (texture != null) texture.dispose();
     }

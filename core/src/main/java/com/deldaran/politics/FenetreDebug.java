@@ -55,6 +55,7 @@ public class FenetreDebug {
     private final ScrollPane defilementLecture;
     private final Cell<ScrollPane> placeLecture;
     private final Table choixLecture = new Table();
+    private Label bandeau;
 
     private static class Info {
         final Label label;
@@ -242,6 +243,10 @@ public class FenetreDebug {
         lecture.pack();
         lecture.setVisible(false);
         stage.addActor(lecture);
+        bandeau = new Label("", new Label.LabelStyle(police, new Color(1f, 0.9f, 0.6f, 1f)));
+        bandeau.setAlignment(Align.center);
+        bandeau.setVisible(false);
+        stage.addActor(bandeau);
 
     }
     
@@ -312,7 +317,28 @@ public class FenetreDebug {
         return stage;
     }
 
+    public void bandeau(String texte) {
+        if (texte == null || texte.isEmpty()) {
+            bandeau.setVisible(false);
+            return;
+        }
+        if (!texte.contentEquals(bandeau.getText())) bandeau.setText(texte);
+        bandeau.pack();
+        bandeau.setPosition((stage.getWidth() - bandeau.getWidth()) / 2f, 40f);
+        bandeau.setVisible(true);
+    }
+
+    /** Lot K1 : la fenêtre de debug se montre ou se cache (touche ²) ; cachée, elle ne prend plus la souris. */
+    public void afficher(boolean oui) {
+        stage.getRoot().setVisible(oui);
+    }
+
+    public boolean affichee() {
+        return stage.getRoot().isVisible();
+    }
+
     public void dessiner(float delta) {
+        if (!affichee()) return;
         for (Section section : sections) {
             section.mettreAJour();
         }

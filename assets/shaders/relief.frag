@@ -31,7 +31,7 @@ float hasard(vec2 n) {
 }
 
 vec3 couleur(float colonne, float ligne) {
-    return texture2D(u_palette, vec2((clamp(floor(colonne + 0.5), 0.0, 7.0) + 0.5) / 8.0, (ligne + 0.5) / 16.0)).rgb;
+    return texture2D(u_palette, vec2((clamp(floor(colonne + 0.5), 0.0, 7.0) + 0.5) / 8.0, (ligne + 0.5) / 24.0)).rgb;
 }
 
 void main() {

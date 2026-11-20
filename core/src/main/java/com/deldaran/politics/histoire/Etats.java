@@ -21,6 +21,7 @@ public class Etats {
         public float siege = 2f;
         public float perteBataille = 0.08f;
         public float sac = 0.2f;
+        public float abandon = 0.15f;
         public int dureeGuerre = 20;
         public float armeeBrisee = 0.3f;
         public float legitimiteDepart = 60f;
@@ -435,6 +436,14 @@ public class Etats {
             f.melanger(p.graine ^ 0x2545F4914F6CDD1DL, annee);
             tues = f.saccager(ville, part, annee);
             mortsDesSacs += tues;
+            if (p.villes.estVivante(ville)) {
+                p.villes.noter(ville, annee, tues > 0 ? Villes.SACCAGEE : Villes.CONQUISE, tues > 0 ? tues : a);
+                boolean capitaleDefendue = estVivant(d) && capitale[d] == ville && r != regionCapitale[d];
+                if (tues > 0 && !capitaleDefendue && capitale[a] != ville && alea() < reglages.abandon * Math.max(0.15f, Math.min(2f, 1000f / Math.max(1, p.villes.habitants[ville])))) {
+                    f.abandonner(ville);
+                    p.villes.abandonner(ville, annee);
+                }
+            }
         }
         chronique.noter(annee, tues > 0 ? Chronique.SAC : Chronique.CONQUETE, a, d, r, tues);
         if (r == regionCapitale[d]) {

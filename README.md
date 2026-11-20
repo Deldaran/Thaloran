@@ -1,8 +1,12 @@
-# Politics
+# Thaloran
 
-A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
+Un monde naît sous tes yeux : plaques, montagnes, fleuves, climats. Puis cinq mille ans d'histoire s'y écrivent sans toi : peuples, villes, royaumes, guerres et dynasties. Alors tu y nais, dans une vraie famille et une vraie ville. Paysan, marchand, soldat ou futur roi, tu vis parmi des habitants qui travaillent, aiment, se souviennent et se vengent. Le passé, tu le découvres par les livres et les récits. Un RPG de vie dark fantasy en pixel art, où chaque monde est unique.
 
-This project was generated with a template including simple application launchers and a main class extending `Game` that sets the first screen.
+Jeu en Java 21 avec [libGDX](https://libgdx.com/). La conception du gameplay est décrite dans [docs/conception-gameplay.md](docs/conception-gameplay.md).
+
+Les mondes du joueur sont rangés dans `~/Thaloran/mondes/`.
+
+Projet créé à partir d'un modèle [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
 ## Platforms
 

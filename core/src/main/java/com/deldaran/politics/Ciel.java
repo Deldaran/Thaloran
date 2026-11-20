@@ -22,6 +22,7 @@ public class Ciel {
     public final Meteo.Locale locale = new Meteo.Locale();
     public float ecrasement = 1f;
     public double rotation;
+    public float nuit;
     private float temps;
     private final double[] soleil = new double[3];
     private float attenteVie;
@@ -59,7 +60,7 @@ public class Ciel {
         float calme = 1f - Math.min(1f, locale.pluie * 1.5f + locale.neige * 2f + locale.orage);
         meteo.soleil(soleil);
         double hauteurSoleil = cx * soleil[0] + cy * soleil[1] + cz * soleil[2];
-        float nuit = (float) lisse(0.1, -0.05, hauteurSoleil);
+        nuit = (float) lisse(0.1, -0.05, hauteurSoleil);
         float jour = 1f - nuit;
 
         double art = Math.max(Vegetation.METRES_SPRITE, mpp);

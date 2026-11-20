@@ -61,6 +61,11 @@ public class Simulation {
         }
     }
 
+    /** Lot K2 : les pas de la formation des fleuves déjà faits (sur pasRivieres). */
+    public int pasRivieresFaits() {
+        return pasHydrologie;
+    }
+
     public String tempsTexte() {
         if (phase == Phase.TECTONIQUE) {
             return (int) monde.temps + " Ma";

@@ -23,6 +23,15 @@ public class Personnage {
     public int dernierPas = -1;
     public static final float PROFONDEUR_MAX = 0.9f;
     private float marche;
+    public Animations.Animation animation;
+    public float tempsAnimation;
+    public Personnage partenaire;
+    public boolean meneur;
+    public double hauteurPortee;
+    public Villageois vie;
+    public float sante = 1f;
+    public String bulle;
+    public float bulleReste;
 
     public Personnage(Apparence apparence, double x, double y, double z) {
         this.apparence = apparence;
@@ -37,6 +46,92 @@ public class Personnage {
                 : direction == HAUT || direction == HAUT_DROITE || direction == HAUT_GAUCHE ? 0 : 2;
         int pas = enMarche ? 1 + (int) (marche * CADENCE * 2f) % (Assembleur.PAS - 1) : 0;
         return vue * Assembleur.PAS + pas;
+    }
+
+    public void jouer(Animations.Animation a) {
+        if (partenaire != null) arreter();
+        animation = a;
+        tempsAnimation = 0f;
+    }
+
+    public void jouer(Animations.Animation a, Personnage autre) {
+        jouer(a);
+        if (a.partenaire == null || autre == null || autre == this) return;
+        autre.jouer(a.partenaire);
+        partenaire = autre;
+        meneur = true;
+        autre.partenaire = this;
+        autre.meneur = false;
+        placerPartenaire();
+    }
+
+    public void arreter() {
+        animation = null;
+        Personnage autre = partenaire;
+        partenaire = null;
+        meneur = false;
+        hauteurPortee = 0.0;
+        if (autre != null && autre.partenaire == this) autre.arreter();
+    }
+
+    public void montrer(String nom, float duree) {
+        bulle = nom;
+        bulleReste = duree;
+    }
+
+    public void avancer(float delta) {
+        bulleReste -= delta;
+        if (animation == null) return;
+        if (partenaire != null && !meneur) return;
+        if (!animation.mobile || enMarche) tempsAnimation += delta;
+        if (partenaire != null) {
+            partenaire.tempsAnimation = tempsAnimation;
+            partenaire.enMarche = enMarche;
+            placerPartenaire();
+        }
+        if (animation.fini(tempsAnimation)) arreter();
+    }
+
+    public int imageAnimation() {
+        return animation.image(tempsAnimation);
+    }
+
+    private void placerPartenaire() {
+        double d = animation.distance;
+        Personnage p = partenaire;
+        p.hauteurPortee = 0.0;
+        switch (animation.placement) {
+            case Animations.COTE:
+                decaler(position, dirNord * d, -dirEst * d, p.position);
+                p.orienter(dirEst, dirNord);
+                break;
+            case Animations.DESSUS:
+                System.arraycopy(position, 0, p.position, 0, 3);
+                p.hauteurPortee = d;
+                p.orienter(dirEst, dirNord);
+                break;
+            default:
+                decaler(position, dirEst * d, dirNord * d, p.position);
+                p.orienter(-dirEst, -dirNord);
+                break;
+        }
+        p.altitude = altitude;
+        p.profondeur = profondeur;
+        p.dansHerbe = dansHerbe;
+    }
+
+    public void orienter(double estMetres, double nordMetres) {
+        double longueur = Math.sqrt(estMetres * estMetres + nordMetres * nordMetres);
+        if (longueur < 1e-9) return;
+        dirEst = (float) (estMetres / longueur);
+        dirNord = (float) (nordMetres / longueur);
+        double cr = Math.cos(rotationVue), sr = Math.sin(rotationVue);
+        double ve = cr * estMetres - sr * nordMetres, vn = sr * estMetres + cr * nordMetres;
+        double ae = Math.abs(ve), an = Math.abs(vn);
+        if (ae > an * 2.0) direction = ve > 0 ? DROITE : GAUCHE;
+        else if (an > ae * 2.0) direction = vn > 0 ? HAUT : BAS;
+        else if (vn > 0) direction = ve > 0 ? HAUT_DROITE : HAUT_GAUCHE;
+        else direction = ve > 0 ? BAS_DROITE : BAS_GAUCHE;
     }
 
     public Tenue tenue() {
@@ -69,6 +164,8 @@ public class Personnage {
     }
 
     public void deplacer(double estMetres, double nordMetres, float delta, Terrain terrain, Terrain.Point point, Obstacles obstacles) {
+        if (partenaire != null && !meneur) return;
+        if (animation != null && !animation.mobile && (estMetres != 0.0 || nordMetres != 0.0)) arreter();
         if (obstacles != null && (estMetres != 0.0 || nordMetres != 0.0) && !obstacles.bloque(position[0], position[1], position[2], RAYON_CORPS)) {
             if (bloque(estMetres, nordMetres, obstacles)) {
                 if (!bloque(estMetres, 0.0, obstacles)) nordMetres = 0.0;
@@ -90,16 +187,7 @@ public class Personnage {
             return;
         }
         marche += delta;
-        double longueur = Math.sqrt(estMetres * estMetres + nordMetres * nordMetres);
-        dirEst = (float) (estMetres / longueur);
-        dirNord = (float) (nordMetres / longueur);
-        double cr = Math.cos(rotationVue), sr = Math.sin(rotationVue);
-        double ve = cr * estMetres - sr * nordMetres, vn = sr * estMetres + cr * nordMetres;
-        double ae = Math.abs(ve), an = Math.abs(vn);
-        if (ae > an * 2.0) direction = ve > 0 ? DROITE : GAUCHE;
-        else if (an > ae * 2.0) direction = vn > 0 ? HAUT : BAS;
-        else if (vn > 0) direction = ve > 0 ? HAUT_DROITE : HAUT_GAUCHE;
-        else direction = ve > 0 ? BAS_DROITE : BAS_GAUCHE;
+        orienter(estMetres, nordMetres);
 
         double x = position[0], y = position[1], z = position[2];
         double ex = -y, ey = x, n = Math.sqrt(ex * ex + ey * ey);
